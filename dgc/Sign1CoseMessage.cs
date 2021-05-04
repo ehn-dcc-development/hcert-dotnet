@@ -61,12 +61,12 @@ namespace DGC
             if (unprotectedMap[HeaderKey_KID] != null)
             {
                 var kidBytes = unprotectedMap[HeaderKey_KID].GetByteString();
-                coseMsg.KID = Encoding.UTF8.GetString(kidBytes);
+                coseMsg.KID = Convert.ToBase64String(kidBytes);
             }
             else
             {
                 var kidBytes = protectedMap[HeaderKey_KID].GetByteString();
-                coseMsg.KID = Encoding.UTF8.GetString(kidBytes);
+                coseMsg.KID = Convert.ToBase64String(kidBytes);
             }
             return coseMsg;
         }
@@ -88,7 +88,7 @@ namespace DGC
             coseObj.Add(protectedMap.EncodeToBytes());
 
             var unProtectedMap = CBORObject.NewMap();
-            var kidBytes = Encoding.UTF8.GetBytes(KID);
+            var kidBytes = Convert.FromBase64String(KID);
             unProtectedMap[HeaderKey_KID] = CBORObject.FromObject(kidBytes);
             coseObj.Add(unProtectedMap);
 

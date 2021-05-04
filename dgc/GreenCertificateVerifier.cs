@@ -22,14 +22,19 @@ namespace DGC
             var publicKeys = _secretariatService.GetPublicKeys(cwt.CoseMessage.KID);
             if (publicKeys.Any())
             {
+                bool? validSignature = null;
                 foreach (var publicKey in publicKeys)
                 {
-                    var verified = cwt.CoseMessage.VerifySignature(publicKey);
-                    if (cwt.ExpiarationTime < DateTime.Now)
-                        return (false, "Certificate has expired");
-                    if (verified) return (true, null);
+                    validSignature = cwt.CoseMessage.VerifySignature(publicKey);
                 }
-                return (false, "KID public key does not match signature");
+                if (!validSignature.HasValue)
+                    return (false, "KID public key not found");
+                if (!validSignature.Value)
+                    return (false, "Signature is not valid");
+                if (cwt.ExpiarationTime < DateTime.Now)
+                    return (false, "Certificate has expired");
+
+                return (true, null);
             }
             else
             {

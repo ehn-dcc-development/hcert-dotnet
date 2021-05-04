@@ -23,15 +23,6 @@ namespace DGC
             }
         }
 
-        public void AddPublicKey(AsymmetricKeyParameter publicKey)
-        {
-            SubjectPublicKeyInfo publicKeyInfo = SubjectPublicKeyInfoFactory.CreateSubjectPublicKeyInfo(publicKey);
-            byte[] serializedPublicBytes = publicKeyInfo.ToAsn1Object().GetDerEncoded();
-            string kid = Convert.ToBase64String(serializedPublicBytes).Substring(0, 8);
-
-            trustedPublicKeys.Add(kid, new List<AsymmetricKeyParameter> { publicKey });
-        }
-
         public void AddPublicKey(string keyId, AsymmetricKeyParameter publicKey)
         {
             trustedPublicKeys.Add(keyId, new List<AsymmetricKeyParameter> { publicKey });

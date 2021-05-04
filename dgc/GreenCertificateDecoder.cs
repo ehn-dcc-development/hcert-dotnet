@@ -25,27 +25,19 @@ namespace DGC
             var coseOBj = Sign1CoseMessage.DecodeFromBytes(coseBytes);
 
             CWT cwt = CWT.DecodeFromBytes(coseOBj);
-            
+
             return cwt;
         }
 
         private byte[] DeflateToCoseBytes(byte[] decodedBytes)
         {
-            if (decodedBytes[0] == 0x78 && decodedBytes[1] == 0xDA)
+            var outputStream = new MemoryStream();
+            using (var compressedStream = new MemoryStream(decodedBytes))
+            using (var inputStream = new InflaterInputStream(compressedStream))
             {
-                var outputStream = new MemoryStream();
-                using (var compressedStream = new MemoryStream(decodedBytes))
-                using (var inputStream = new InflaterInputStream(compressedStream))
-                {
-                    inputStream.CopyTo(outputStream);
-                    outputStream.Position = 0;
-                    return outputStream.ToArray();
-                }
-            }
-            else
-            {
-                // The data is not compressed
-                return decodedBytes;
+                inputStream.CopyTo(outputStream);
+                outputStream.Position = 0;
+                return outputStream.ToArray();
             }
         }
     }
