@@ -3,6 +3,7 @@ using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.X509;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace DGC
 {
@@ -29,6 +30,11 @@ namespace DGC
             string kid = Convert.ToBase64String(serializedPublicBytes).Substring(0, 8);
 
             trustedPublicKeys.Add(kid, new List<AsymmetricKeyParameter> { publicKey });
+        }
+
+        public void AddPublicKey(string keyId, AsymmetricKeyParameter publicKey)
+        {
+            trustedPublicKeys.Add(keyId, new List<AsymmetricKeyParameter> { publicKey });
         }
     }
 }

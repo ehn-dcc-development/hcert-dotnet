@@ -1,6 +1,4 @@
-﻿using Org.BouncyCastle.Crypto;
-using Org.BouncyCastle.Security;
-using System;
+﻿using System;
 using System.Linq;
 
 namespace DGC
@@ -21,12 +19,12 @@ namespace DGC
         /// <returns>(true, null) if valid, (false, reason) if not valid</returns>
         public (bool, string) Verify(CWT cwt)
         {
-            var publicKeys = _secretariatService.GetPublicKeys(cwt.KID);
+            var publicKeys = _secretariatService.GetPublicKeys(cwt.CoseMessage.KID);
             if (publicKeys.Any())
             {
                 foreach (var publicKey in publicKeys)
                 {
-                    var verified = VerifySignature(cwt, publicKey);
+                    var verified = cwt.CoseMessage.VerifySignature(publicKey);
                     if (cwt.ExpiarationTime < DateTime.Now)
                         return (false, "Certificate has expired");
                     if (verified) return (true, null);
@@ -37,26 +35,7 @@ namespace DGC
             {
                 return (false, "KID not found in trusted public key repository");
             }
-        }
-
-        private bool VerifySignature(CWT cwt, AsymmetricKeyParameter pubKey)
-        {
-            if (cwt.RegisteredAlgorithm == HCertSupportedAlgorithm.ES256)
-            {
-                ISigner signer = SignerUtilities.GetSigner("SHA-256withECDSA");
-                signer.Init(false, pubKey);
-                signer.BlockUpdate(cwt.Content, 0, cwt.Content.Length);
-                return signer.VerifySignature(cwt.Signature);
-            }
-            else if (cwt.RegisteredAlgorithm == HCertSupportedAlgorithm.PS256)
-            {
-                ISigner signer = SignerUtilities.GetSigner("SHA256withRSA/PSS");
-                signer.Init(false, pubKey);
-                signer.BlockUpdate(cwt.Content, 0, cwt.Content.Length);
-                return signer.VerifySignature(cwt.Signature);
-            }
-            return false;
-        }
+        }        
     }
 }
 

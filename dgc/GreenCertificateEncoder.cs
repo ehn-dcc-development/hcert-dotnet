@@ -9,10 +9,12 @@ namespace DGC
     public class GreenCertificateEncoder
     {
         private readonly AsymmetricCipherKeyPair keypair;
+        private readonly string _keyid;
 
-        public GreenCertificateEncoder(AsymmetricCipherKeyPair keypair)
+        public GreenCertificateEncoder(AsymmetricCipherKeyPair keypair, string keyid)
         {
             this.keypair = keypair;
+            _keyid = keyid;
         }
 
         public string Encode(CWT cwt)
@@ -47,11 +49,11 @@ namespace DGC
 
             if (keypair.Private is Org.BouncyCastle.Crypto.Parameters.RsaPrivateCrtKeyParameters)
             {
-                msg.Sign(keypair, HCertSupportedAlgorithm.PS256);
+                msg.Sign(keypair, HCertSupportedAlgorithm.PS256, _keyid);
             }
             else if (keypair.Private is Org.BouncyCastle.Crypto.Parameters.ECKeyParameters)
             {
-                msg.Sign(keypair, HCertSupportedAlgorithm.ES256);
+                msg.Sign(keypair, HCertSupportedAlgorithm.ES256, _keyid);
             }
             else
             {

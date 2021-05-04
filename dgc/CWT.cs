@@ -6,13 +6,14 @@ namespace DGC
 {
     public class CWT
     {
-        private Sign1CoseMessage _coseMessage;
-        public byte[] Signature { get => _coseMessage.Signature; }
+        public Sign1CoseMessage CoseMessage { get; private set; }
+        /*public byte[] Signature { get => _coseMessage.Signature; }
         public HCertSupportedAlgorithm RegisteredAlgorithm { get => _coseMessage.RegisteredAlgorithm; }
         public string KID { get => _coseMessage.KID; }
         public byte[] Content { get => _coseMessage.Content; }
-
-        public EuHcertV1Schema DGCv1 { get; set; }
+        public CBORObject ProtectedMap { get => _coseMessage.ProtectedMap; }
+        */
+        public DgCertificate DGCv1 { get; set; }
         public string Issuer { get; set; }
 
         public DateTime IssueAt { get; set; }
@@ -27,7 +28,7 @@ namespace DGC
         {
             var cbor = CBORObject.DecodeFromBytes(coseMessage.Content);
             var cwt = new CWT();
-            cwt._coseMessage = coseMessage;
+            cwt.CoseMessage = coseMessage;
 
             cwt.Issuer = cbor[Header_Iss].AsString();
             cwt.IssueAt = DateTimeOffset.FromUnixTimeSeconds(cbor[Header_IAT].AsNumber().ToInt64Unchecked()).DateTime;
@@ -36,7 +37,7 @@ namespace DGC
             var hcert = cbor[Header_HCERT];
             var dgcJson = hcert[1].ToJSONString();
 
-            cwt.DGCv1 = JsonConvert.DeserializeObject<EuHcertV1Schema>(dgcJson);
+            cwt.DGCv1 = JsonConvert.DeserializeObject<DgCertificate>(dgcJson);
 
             return cwt;
         }
