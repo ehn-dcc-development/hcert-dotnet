@@ -1,20 +1,24 @@
 ﻿using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Security;
-using Org.BouncyCastle.X509;
 using PeterO.Cbor;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Numerics;
-using System.Text;
 
 namespace DGC
 {
     public class Sign1CoseMessage
     {
         const int Sign1Tag = 18;
+        const int CoseHeader_ProtectedMap = 0;
+        const int CoseHeader_UnProtectedMap = 1;
+        const int CoseHeader_Content = 2;
+        const int CoseHeader_Signature = 3;
+
         private const string ContextSignature1 = "Signature1";
+        private const int DerSequenceTag = 0x30;
+
         static readonly CBORObject HeaderKey_Alg = CBORObject.FromObject(1);
         static readonly CBORObject Alg_ES256 = CBORObject.FromObject(-7);
         static readonly CBORObject Alg_PS256 = CBORObject.FromObject(-37);
@@ -22,7 +26,7 @@ namespace DGC
 
         public byte[] Content { get; set; }
         public byte[] Signature { get; set; }
-        public HCertSupportedAlgorithm RegisteredAlgorithm { get; private set; }
+        public DGCertSupportedAlgorithm RegisteredAlgorithm { get; private set; }
         public string KID { get; private set; }
         public CBORObject ProtectedMap { get; private set; }
 
@@ -34,24 +38,24 @@ namespace DGC
             if (cborMsg.MostOuterTag.ToInt32Checked() != Sign1Tag) throw new InvalidDataException("Message is not a COSE security message.");
             if (cborMsg.Count != 4) throw new InvalidDataException("Invalid Sign1 structure");
 
-            var protectedBytes = cborMsg[0].GetByteString();
+            var protectedBytes = cborMsg[CoseHeader_ProtectedMap].GetByteString();
             var protectedMap = CBORObject.DecodeFromBytes(protectedBytes);
             
-            var unprotectedMap = cborMsg[1];
+            var unprotectedMap = cborMsg[CoseHeader_UnProtectedMap];
 
             var coseMsg = new Sign1CoseMessage();
-            coseMsg.Content = cborMsg[2].GetByteString();
-            coseMsg.Signature = cborMsg[3].GetByteString();
+            coseMsg.Content = cborMsg[CoseHeader_Content].GetByteString();
+            coseMsg.Signature = cborMsg[CoseHeader_Signature].GetByteString();
             coseMsg.ProtectedMap = protectedMap;
 
             var algKey = protectedMap[HeaderKey_Alg];
             if (algKey.AsInt32() == Alg_ES256.AsInt32())
             {
-                coseMsg.RegisteredAlgorithm = HCertSupportedAlgorithm.ES256;
+                coseMsg.RegisteredAlgorithm = DGCertSupportedAlgorithm.ES256;
             }
             else if (algKey.AsInt32() == Alg_PS256.AsInt32())
             {
-                coseMsg.RegisteredAlgorithm = HCertSupportedAlgorithm.PS256;
+                coseMsg.RegisteredAlgorithm = DGCertSupportedAlgorithm.PS256;
             }
             else
             {
@@ -76,11 +80,11 @@ namespace DGC
             var coseObj = CBORObject.NewArray();
 
             var protectedMap = CBORObject.NewMap();
-            if (RegisteredAlgorithm == HCertSupportedAlgorithm.ES256)
+            if (RegisteredAlgorithm == DGCertSupportedAlgorithm.ES256)
             {
                 protectedMap[HeaderKey_Alg] = Alg_ES256;
             }
-            else if (RegisteredAlgorithm == HCertSupportedAlgorithm.PS256)
+            else if (RegisteredAlgorithm == DGCertSupportedAlgorithm.PS256)
             {
                 protectedMap[HeaderKey_Alg] = Alg_PS256;
             }
@@ -92,26 +96,26 @@ namespace DGC
             unProtectedMap[HeaderKey_KID] = CBORObject.FromObject(kidBytes);
             coseObj.Add(unProtectedMap);
 
-            coseObj.Add(CBORObject.FromObjectAndTag(Content, 2));
-            coseObj.Add(CBORObject.FromObjectAndTag(Signature, 3));
+            coseObj.Add(CBORObject.FromObjectAndTag(Content, CoseHeader_Content));
+            coseObj.Add(CBORObject.FromObjectAndTag(Signature, CoseHeader_Signature));
             return CBORObject.FromObjectAndTag(coseObj, Sign1Tag).EncodeToBytes();
         }
 
-        public void Sign(AsymmetricCipherKeyPair keypair, HCertSupportedAlgorithm alg, string keyid)
+        public void Sign(AsymmetricCipherKeyPair keypair, DGCertSupportedAlgorithm alg, string keyid)
         {
             ISigner signer;
-            var signLenght = 0;
+            var signLength = 0;
             var protectedMap = CBORObject.NewMap();
-            if (alg == HCertSupportedAlgorithm.ES256)
+            if (alg == DGCertSupportedAlgorithm.ES256)
             {
-                RegisteredAlgorithm = HCertSupportedAlgorithm.ES256;
+                RegisteredAlgorithm = DGCertSupportedAlgorithm.ES256;
                 protectedMap[HeaderKey_Alg] = Alg_ES256;
                 signer = SignerUtilities.GetSigner("SHA-256withECDSA");
-                signLenght = 32;
+                signLength = 32;
             }
-            else if (alg == HCertSupportedAlgorithm.PS256)
+            else if (alg == DGCertSupportedAlgorithm.PS256)
             {
-                RegisteredAlgorithm = HCertSupportedAlgorithm.PS256;
+                RegisteredAlgorithm = DGCertSupportedAlgorithm.PS256;
                 protectedMap[HeaderKey_Alg] = Alg_PS256;
 
                 signer = SignerUtilities.GetSigner("SHA256withRSA/PSS");
@@ -132,9 +136,9 @@ namespace DGC
             signer.BlockUpdate(bytesToSign, 0, bytesToSign.Length);
 
             var signature = signer.GenerateSignature();
-            if (signLenght > 0)
+            if (signLength > 0)
             {
-                signature = ConvertDerToConcat(signature, signLenght);
+                signature = ConvertDerToConcat(signature, signLength);
             }
 
             Signature = signature;
@@ -169,7 +173,6 @@ namespace DGC
             cborArray.Add(Content);
 
             var bytesToSign = cborArray.EncodeToBytes();
-            // if ec then encode
             signer.BlockUpdate(bytesToSign, 0, bytesToSign.Length);
 
             return signer.VerifySignature(signature);
@@ -185,10 +188,10 @@ namespace DGC
 
             byte[] s = new byte[len];
             Array.Copy(concat, len, s, 0, len);
-            s = UnsignedInteger(s);
+            s = UnsignedInteger(s);            
 
             var x = new List<byte[]>();
-            x.Add(new byte[] { 0x30 });
+            x.Add(new byte[] { DerSequenceTag });
             x.Add(new byte[] { (byte)(r.Length+s.Length) });
             x.Add(r);
             x.Add(s);
@@ -199,21 +202,15 @@ namespace DGC
 
         private static byte[] UnsignedInteger(byte[] i)
         {
-            int pad = 0, offset = 0;
-
-            while (offset < i.Length && i[offset] == 0)
-            {
-                offset++;
-            }
+            var offset = Array.FindIndex(i, elem => elem != 0);
 
             if (offset == i.Length)
             {
+                // Is 0
                 return new byte[] { 0x02, 0x01, 0x00 };
             }
-            if ((i[offset] & 0x80) != 0)
-            {
-                pad++;
-            }
+
+            int pad = (i[offset] & 0x80) != 0 ? 1 : 0;
 
             int length = i.Length - offset;
             byte[] der = new byte[2 + length + pad];
@@ -226,28 +223,21 @@ namespace DGC
 
         private static byte[] ConvertDerToConcat(byte[] der, int len)
         {
-            // this is far too naive
-            byte[] concat = new byte[len * 2];
-
-            // assumes SEQUENCE is organized as "R + S"
-            int kLen = 4;
-            if (der[0] != 0x30)
+            if (der[0] != DerSequenceTag)
             {
                 throw new Exception("Unexpected signature input");
             }
-            if ((der[1] & 0x80) != 0)
-            {
-                // offset actually 4 + (7-bits of byte 1)
-                kLen = 4 + (der[1] & 0x7f);
-            }
 
+            byte[] concat = new byte[len * 2];
+
+            // assumes SEQUENCE is organized as "R + S"
             // calculate start/end of R
-            int rOff = kLen;
-            int rLen = der[rOff - 1];
+            int rOffset = 4; // first few bytes containing der structure info
+            int rLen = der[3];
             int rPad = 0;
             if (rLen > len)
             {
-                rOff += (rLen - len);
+                rOffset += (rLen - len);
                 rLen = len;
             }
             else
@@ -255,10 +245,10 @@ namespace DGC
                 rPad = (len - rLen);
             }
             // copy R
-            Array.Copy(der, rOff, concat, rPad, rLen);
+            Array.Copy(der, rOffset, concat, rPad, rLen);
 
             // calculate start/end of S
-            int sOff = rOff + rLen + 2;
+            int sOff = rOffset + rLen + 2;
             int sLen = der[sOff - 1];
             int sPad = 0;
             if (sLen > len)

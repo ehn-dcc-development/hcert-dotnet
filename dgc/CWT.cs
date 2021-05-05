@@ -7,12 +7,6 @@ namespace DGC
     public class CWT
     {
         public Sign1CoseMessage CoseMessage { get; private set; }
-        /*public byte[] Signature { get => _coseMessage.Signature; }
-        public HCertSupportedAlgorithm RegisteredAlgorithm { get => _coseMessage.RegisteredAlgorithm; }
-        public string KID { get => _coseMessage.KID; }
-        public byte[] Content { get => _coseMessage.Content; }
-        public CBORObject ProtectedMap { get => _coseMessage.ProtectedMap; }
-        */
         public DgCertificate DGCv1 { get; set; }
         public string Issuer { get; set; }
 

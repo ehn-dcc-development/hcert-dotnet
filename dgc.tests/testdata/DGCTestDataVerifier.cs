@@ -7,22 +7,18 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace dgc.tests.testdata
 {
     [TestClass]
     public class DGCTestDataVerifier
     {
-
-
         record TestData (string prefix, string certificate);
 
         [TestMethod]
         public void TestAll()
         {
-            var jsonfiles = Directory.GetFiles("testdata\\", "*.json", SearchOption.AllDirectories);
+            var jsonfiles = Directory.GetFiles("testdata", "*.json", SearchOption.AllDirectories);
 
             var testdataset = new List<TestData>();
             foreach (var jsonTestDataFile in jsonfiles)
@@ -53,6 +49,7 @@ namespace dgc.tests.testdata
                 }
 
                 var (isvalid, reason) = verifier.Verify(cwt);
+                Assert.IsTrue(isvalid, reason);
             }
         }
     }

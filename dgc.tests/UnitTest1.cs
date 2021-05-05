@@ -152,7 +152,7 @@ namespace DGC.Tests
 
             Assert.IsNotNull(cwt);
             Assert.IsNotNull(cwt.DGCv1.Vaccination);
-            Assert.AreEqual(cwt.CoseMessage.RegisteredAlgorithm, HCertSupportedAlgorithm.ES256);
+            Assert.AreEqual(cwt.CoseMessage.RegisteredAlgorithm, DGCertSupportedAlgorithm.ES256);
         }
 
 
@@ -216,7 +216,7 @@ namespace DGC.Tests
 
             Assert.IsNotNull(cwt);
             Assert.IsNotNull(cwt.DGCv1.Vaccination);
-            Assert.AreEqual(cwt.CoseMessage.RegisteredAlgorithm, HCertSupportedAlgorithm.PS256);
+            Assert.AreEqual(cwt.CoseMessage.RegisteredAlgorithm, DGCertSupportedAlgorithm.PS256);
         }
 
         [TestMethod]
@@ -230,7 +230,7 @@ namespace DGC.Tests
 
             Assert.IsNotNull(cwt);
             Assert.IsNotNull(cwt.DGCv1.Vaccination);
-            Assert.AreEqual(cwt.CoseMessage.RegisteredAlgorithm, HCertSupportedAlgorithm.PS256);
+            Assert.AreEqual(cwt.CoseMessage.RegisteredAlgorithm, DGCertSupportedAlgorithm.PS256);
         }
 
         [TestMethod]

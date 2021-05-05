@@ -8,7 +8,7 @@ namespace DGC
     public class GreenCertificateDecoder
     {
         /// <summary>
-        /// Decodes base45 encoded string -> Deflate -> COSE -> CBOR -> arbitrary Json String
+        /// Decodes base45 encoded string -> Inflate -> COSE -> CBOR -> arbitrary Json String
         /// </summary>
         /// <param name="base45String">Base45 Encoded string</param>
         /// <returns>Cose object and a digital green card v1 object</returns>
@@ -20,7 +20,7 @@ namespace DGC
             base45String = base45String.Substring(4);
             var decodedBytes = Base45Encoding.Decode(base45String);
 
-            var coseBytes = DeflateToCoseBytes(decodedBytes);
+            var coseBytes = InflateToCoseBytes(decodedBytes);
 
             var coseOBj = Sign1CoseMessage.DecodeFromBytes(coseBytes);
 
@@ -29,7 +29,7 @@ namespace DGC
             return cwt;
         }
 
-        private byte[] DeflateToCoseBytes(byte[] decodedBytes)
+        private byte[] InflateToCoseBytes(byte[] decodedBytes)
         {
             var outputStream = new MemoryStream();
             using (var compressedStream = new MemoryStream(decodedBytes))

@@ -1,6 +1,6 @@
 ﻿namespace DGC
 {
-    public enum HCertSupportedAlgorithm
+    public enum DGCertSupportedAlgorithm
     {
         ES256,
         PS256

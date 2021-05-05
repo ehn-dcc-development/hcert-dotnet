@@ -1,5 +1,5 @@
 # dgc-dotnet
-C# /.NET implementation of the [Electronic Health Certificate Specification](https://github.com/ehn-digital-green-development/hcert-spec) to create and decode Digital Green Certificates
+C# /.NET implementation of the [Electronic Health Certificate Specification](https://github.com/ehn-digital-green-development/ehn-dgc-schema) to create and decode Digital Green Certificates
 
 ## About
 This is a dotnet standard library. 

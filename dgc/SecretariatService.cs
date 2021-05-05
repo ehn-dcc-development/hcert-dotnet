@@ -1,9 +1,5 @@
-﻿using Org.BouncyCastle.Asn1.X509;
-using Org.BouncyCastle.Crypto;
-using Org.BouncyCastle.X509;
-using System;
+﻿using Org.BouncyCastle.Crypto;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace DGC
 {
