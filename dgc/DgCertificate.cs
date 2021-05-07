@@ -17,7 +17,8 @@ namespace DGC
         /// range 1900-2099
         /// </summary>
         [JsonProperty("dob")]
-        public DateTimeOffset DateOfBirth { get; set; }
+        [JsonConverter(typeof(CustomDateTimeConverter))]
+        public DateTime DateOfBirth { get; set; }
 
         /// <summary>
         /// Surname(s), given name(s) - in that order
@@ -272,5 +273,13 @@ namespace DGC
         /// </summary>
         [JsonProperty("vp")]
         public string Vaccine { get; set; }
+    }
+
+    class CustomDateTimeConverter : IsoDateTimeConverter
+    {
+        public CustomDateTimeConverter()
+        {
+            DateTimeFormat = "yyyy-MM-dd";
+        }
     }
 }

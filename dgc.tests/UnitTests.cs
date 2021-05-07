@@ -12,7 +12,7 @@ using Org.BouncyCastle.X509;
 namespace DGC.Tests
 {
     [TestClass]
-    public class UnitTest1
+    public class UnitTests
     {
         private static CWT CreateCWTTestData()
         {

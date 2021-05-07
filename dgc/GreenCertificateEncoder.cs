@@ -17,17 +17,38 @@ namespace DGC
             _keyid = keyid;
         }
 
+        public class EncodeIntermediateData
+        {
+            public byte[] CwtBytes { get; set; }
+            public byte[] CoseBytes { get; set; }
+            public byte[] CompressedBytes { get; set; }
+            public string Base45String { get; set; }
+        }
+
         public string Encode(CWT cwt)
+        {
+            var (prefix, _) = EncodeIntermediateDataReturn(cwt);
+            return prefix;
+        }
+
+        public (string, EncodeIntermediateData) EncodeIntermediateDataReturn(CWT cwt)
         {
             var cwtBytes = cwt.EncodeToBytes();
             var coseBytes = GetCOSEBytes(cwtBytes);
             var commpressed = GetCompressedBytes(coseBytes);
-            return GetBase45(commpressed);
+            var base45 = GetBase45(commpressed);
+            return ("HC1:" + base45, new EncodeIntermediateData
+            {
+                CwtBytes = cwtBytes,
+                Base45String = base45,
+                CompressedBytes = commpressed,
+                CoseBytes = coseBytes
+            });
         }
 
         private string GetBase45(byte[] deflateBytes)
         {
-            return "HC1:" + Base45Encoding.Encode(deflateBytes);
+            return Base45Encoding.Encode(deflateBytes);
         }
 
         private byte[] GetCompressedBytes(byte[] buffer)

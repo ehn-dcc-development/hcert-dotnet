@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace dgc
+namespace DGC
 {
     public static class MrzEncoder
     {
@@ -23,14 +23,22 @@ namespace dgc
             {'\u0133', "IJ"}, // ĳ
             {'\u00DC', "UE"}, // Ü
             {'\u00FC', "UE"}, // ü
-            {'\u00DF', "SS"}  // ß
+            {'\u00DF', "SS"}, // ß
+            {'Þ', "TH"},
+            {'Ð', "D"},
+            {'Ó', "O"},
+            {'Ú', "U"},
+            {'Í', "I"},
+            {'Ý', "Y"},
+            {'Á', "A"},
+            {'É', "E"},
         };
 
 
         public static string Encode(string input)
         {
             var builder = new StringBuilder(input.Length);
-            foreach (var c in input.Trim())
+            foreach (var c in input.ToUpper().Trim())
             {
                 if (CHAR_MAPPINGS.TryGetValue(c, out string mc))
                 {
@@ -53,9 +61,8 @@ namespace dgc
 
             // Remove all accents and replace all invalid characters with <
             var normalized = builder.ToString()
-                .Normalize().ToUpper();
+                .Normalize();
 
-            var nononeasci = Regex.Replace(normalized, "[^\\p{ASCII}]", "");
             var onlyAsci = Regex.Replace(normalized, "[^<[A-Z][0-9]]", "<");
             return onlyAsci;
         }

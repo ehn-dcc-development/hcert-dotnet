@@ -89,13 +89,14 @@ namespace DGC
                 protectedMap[HeaderKey_Alg] = Alg_PS256;
             }
 
-            coseObj.Add(protectedMap.EncodeToBytes());
-
-            var unProtectedMap = CBORObject.NewMap();
             var kidBytes = Convert.FromBase64String(KID);
-            unProtectedMap[HeaderKey_KID] = CBORObject.FromObject(kidBytes);
-            coseObj.Add(unProtectedMap);
+            protectedMap[HeaderKey_KID] = CBORObject.FromObjectAndTag(kidBytes, 4);
 
+            coseObj.Add(protectedMap.EncodeToBytes());
+            
+            var unProtectedMap = CBORObject.NewMap();
+            coseObj.Add(unProtectedMap);
+            
             coseObj.Add(CBORObject.FromObjectAndTag(Content, CoseHeader_Content));
             coseObj.Add(CBORObject.FromObjectAndTag(Signature, CoseHeader_Signature));
             return CBORObject.FromObjectAndTag(coseObj, Sign1Tag).EncodeToBytes();
@@ -124,6 +125,8 @@ namespace DGC
             {
                 throw new NotSupportedException("Algorithm not supported");
             }
+            var kidBytes = Convert.FromBase64String(keyid);
+            protectedMap[HeaderKey_KID] = CBORObject.FromObjectAndTag(kidBytes, 4);
 
             signer.Init(true, keypair.Private);
             var cborArray = CBORObject.NewArray();
@@ -204,7 +207,7 @@ namespace DGC
         {
             var offset = Array.FindIndex(i, elem => elem != 0);
 
-            if (offset == i.Length)
+            if (offset == -1)
             {
                 // Is 0
                 return new byte[] { 0x02, 0x01, 0x00 };

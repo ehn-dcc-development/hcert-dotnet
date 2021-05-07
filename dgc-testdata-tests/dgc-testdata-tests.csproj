@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
+    <RootNamespace>dgc_testdata_tests</RootNamespace>
 
     <IsPackable>false</IsPackable>
   </PropertyGroup>
@@ -17,4 +18,10 @@
     <ProjectReference Include="..\dgc\dgc.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="dgc-testdata\**\*.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+  
 </Project>
