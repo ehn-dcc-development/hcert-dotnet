@@ -5,6 +5,7 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+    
 
 jobs:
   build:
@@ -13,6 +14,12 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - name: Checkout submodule
+      uses: actions/checkout@v2.0.0
+      with:
+        repository: eu-digital-green-certificates/dgc-testdata
+        path: dgc-testdata-tests/dgc-testdata
+        ref: 'main'
     - name: Setup .NET
       uses: actions/setup-dotnet@v1
       with:
