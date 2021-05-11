@@ -1,11 +1,16 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text.Json;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json.Linq;
+using Org.BouncyCastle.Asn1.X509;
 using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Crypto.Generators;
+using Org.BouncyCastle.Crypto.Operators;
+using Org.BouncyCastle.Math;
 using Org.BouncyCastle.Security;
 using Org.BouncyCastle.X509;
 
@@ -52,25 +57,71 @@ namespace DGC.Tests
             return cwt;
         }
 
+        private static (string, X509Certificate, AsymmetricCipherKeyPair) CreateX509Cert(bool useRSA = false)
+        {
+            var random = new SecureRandom();
+            AsymmetricCipherKeyPair keypair;
+            if (useRSA)
+            {
+                var keyGenerationParameters = new KeyGenerationParameters(random, 2048);
+                var generator = new RsaKeyPairGenerator();
+                generator.Init(keyGenerationParameters);
+                keypair = generator.GenerateKeyPair();
+            }
+            else
+            {
+                var keyGenerationParameters = new KeyGenerationParameters(random, 256);
+                var generator = new ECKeyPairGenerator();
+                generator.Init(keyGenerationParameters);
+                keypair = generator.GenerateKeyPair();
+            }            
+
+            IDictionary attrs = new Hashtable();
+            attrs[X509Name.E] = "E-Mail";
+            attrs[X509Name.CN] = "BL DSC 1";
+            attrs[X509Name.O] = "Bla";
+            attrs[X509Name.C] = "BL";
+            IList ord = new ArrayList();
+            ord.Add(X509Name.E);
+            ord.Add(X509Name.CN);
+            ord.Add(X509Name.O);
+            ord.Add(X509Name.C);
+            ISignatureFactory signatureFactory = useRSA ?
+                new Asn1SignatureFactory("SHA1withRSA", keypair.Private, random) :
+                new Asn1SignatureFactory("SHA256withECDSA", keypair.Private, random);
+            X509V3CertificateGenerator certGen = new X509V3CertificateGenerator();
+            certGen.SetSerialNumber(BigInteger.One);
+            certGen.SetIssuerDN(new X509Name(ord, attrs));
+            certGen.SetNotBefore(DateTime.Today.Subtract(new TimeSpan(1, 0, 0, 0)));
+            certGen.SetNotAfter(DateTime.Today.AddDays(365));
+            certGen.SetSubjectDN(new X509Name(ord, attrs));
+            certGen.AddExtension(X509Extensions.BasicConstraints, true, new BasicConstraints(false));
+            certGen.AddExtension(X509Extensions.AuthorityKeyIdentifier, true, new AuthorityKeyIdentifier(SubjectPublicKeyInfoFactory.CreateSubjectPublicKeyInfo(keypair.Public)));
+            certGen.SetPublicKey(keypair.Public);
+            var cert = certGen.Generate(signatureFactory);
+
+            var keyId = "";
+            using (SHA256 mySHA256 = SHA256.Create())
+            {
+                var hash = mySHA256.ComputeHash(cert.GetEncoded());
+                var hash8 = hash.Take(8).ToArray();
+                keyId = Convert.ToBase64String(hash8);
+            }
+            
+            return (keyId, cert, keypair);
+        }
+
         [TestMethod]
         public void EncodeDecode_RoundTrip_IsValid()
         {
-            var random = new SecureRandom();
-            var keyGenerationParameters = new KeyGenerationParameters(random, 256);
-            var generator = new ECKeyPairGenerator();
-            generator.Init(keyGenerationParameters);
-            var keypair = generator.GenerateKeyPair();
-
-            var publicKeyInfo = SubjectPublicKeyInfoFactory.CreateSubjectPublicKeyInfo(keypair.Public);
-            byte[] serializedPublicBytes = publicKeyInfo.ToAsn1Object().GetDerEncoded();
-            var keyid = Convert.ToBase64String(serializedPublicBytes).Substring(0, 8);
+            var (keyid, cert, keypair) = CreateX509Cert();
 
             var cwtToTest = CreateCWTTestData();
             string encoded = new GreenCertificateEncoder(keypair, keyid).Encode(cwtToTest);
             var cwt = new GreenCertificateDecoder().Decode(encoded);
-
+            
             var scretariat = new SecretariatService();
-            scretariat.AddPublicKey(keyid, keypair.Public);
+            scretariat.AddPublicKey(keyid, cert);
 
             var verifier = new GreenCertificateVerifier(scretariat);
             var (isvalid, reason) = verifier.Verify(cwt);
@@ -82,30 +133,16 @@ namespace DGC.Tests
         [TestMethod]
         public void EncodeDecode_WrongPublicKey()
         {
-            var random = new SecureRandom();
-            var keyGenerationParameters = new KeyGenerationParameters(random, 256);
-            var generator = new ECKeyPairGenerator();
-            generator.Init(keyGenerationParameters);
-            var keypair = generator.GenerateKeyPair();
-
-            var cborPrivateKey = keypair.Private;
-
-            generator.Init(keyGenerationParameters);
-            var keypairWrongPub = generator.GenerateKeyPair();
-            var cborPublicKey = keypairWrongPub.Public;
-
-            var publicKeyInfo = SubjectPublicKeyInfoFactory.CreateSubjectPublicKeyInfo(keypair.Public);
-            byte[] serializedPublicBytes = publicKeyInfo.ToAsn1Object().GetDerEncoded();
-            var keyid = Convert.ToBase64String(serializedPublicBytes).Substring(0, 8);
+            var (keyid, cert, keypair) = CreateX509Cert();
 
             var cwtToTest = CreateCWTTestData();
 
-            string encoded = new GreenCertificateEncoder(keypair, keyid).Encode(cwtToTest);
+            string encoded = new GreenCertificateEncoder(keypair, "123=").Encode(cwtToTest);
             var cwt = new GreenCertificateDecoder().Decode(encoded);
 
             var scretariat = new SecretariatService();
-            scretariat.AddPublicKey(keyid, cborPublicKey);
-
+            scretariat.AddPublicKey(keyid, cert);
+            
             var verifier = new GreenCertificateVerifier(scretariat);
             var (isvalid, reason) = verifier.Verify(cwt);
 
@@ -117,22 +154,14 @@ namespace DGC.Tests
         [TestMethod]
         public void EncodeDecode_RSAKeys()
         {
-            var random = new SecureRandom();
-            var keyGenerationParameters = new KeyGenerationParameters(random, 2048);
-            var generator = new RsaKeyPairGenerator();
-            generator.Init(keyGenerationParameters);
-            var keypair = generator.GenerateKeyPair();
-
-            var publicKeyInfo = SubjectPublicKeyInfoFactory.CreateSubjectPublicKeyInfo(keypair.Public);
-            byte[] serializedPublicBytes = publicKeyInfo.ToAsn1Object().GetDerEncoded();
-            var keyid = Convert.ToBase64String(serializedPublicBytes).Substring(0, 8);
+            var (keyid, cert, keypair) = CreateX509Cert();
 
             var cwtToTest = CreateCWTTestData();
             string encoded = new GreenCertificateEncoder(keypair, keyid).Encode(cwtToTest);
             var cwt = new GreenCertificateDecoder().Decode(encoded);
 
             var scretariat = new SecretariatService();
-            scretariat.AddPublicKey(keyid, keypair.Public);
+            scretariat.AddPublicKey(keyid, cert);
 
             var verifier = new GreenCertificateVerifier(scretariat);
             var (isvalid, _) = verifier.Verify(cwt);
@@ -160,10 +189,12 @@ namespace DGC.Tests
 
         static List<TestData> testData = new List<TestData>
         {
+            new TestData(encodedEhnCert: "HC1:NCFOXNSTSNBJ5*H:QO*.O6E8$3HAVDF71B:R/EB.H2UCSDF6RHNJCBMF6.UCSMIF0JEYI1DLNCKUCII7JSTNB95.16$17V35$7OCA7G6M01Q9D6YVQM473X7PUOPW6UZ6R77%47-Z76T4%CRFCQKP7YW64A7E:7LYPHTQCLAWEQXCRM650 LHZA0D9E2LBHHGKLO-K%FGLIA-D8+6JDJN XGUEEA.D90I/EL6KKYHIL4OTJLGY8/.DV2MNAIX8AXGG JMLII7EDTG91PC3DE0OARH9W/IO6AHCR+9A%DPN95N14V*QP+PHI4W*PP+P8OI.I9Y*VSV0I+QWZJ4ZHR-SGG1CSQ6U7SSQY%SVJ55M8*AV8M5SI1EL48M9JOALRKT8HHWJ9TLCDL9-9W/U.ZOSWS/2T:1HA%LX3NCY4.TC$TM325-4D BT%/0DF169PZ$1DRJU/UBXQVZH-/6C14/MAAMN BT/PIV5V95W$20IWE91", keyId: "", encodedSigningCert: "MIIB1zCCAX4CCQC0ml1HeoxfXDAKBggqhkjOPQQDAjB0MQswCQYDVQQGEwJHUjEPMA0GA1UECAwGQXR0aWtpMQ8wDQYDVQQHDAZBdGhlbnMxDjAMBgNVBAoMBUdSTkVUMRMwEQYDVQQLDApEZXZlbG9wZXJzMR4wHAYJKoZIhvcNAQkBFg9taWxvdWtAZ3JuZXQuZ3IwHhcNMjEwNTA1MTAwNDI1WhcNMjIwNDMwMTAwNDI1WjB0MQswCQYDVQQGEwJHUjEPMA0GA1UECAwGQXR0aWtpMQ8wDQYDVQQHDAZBdGhlbnMxDjAMBgNVBAoMBUdSTkVUMRMwEQYDVQQLDApEZXZlbG9wZXJzMR4wHAYJKoZIhvcNAQkBFg9taWxvdWtAZ3JuZXQuZ3IwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAATrB216EqdwabvTUmDe42FTBotf/Medq0RtSO5l9LS/rOQXbBtyQxBEUTHzp3Y69Mm71cA/vezP9F8mNDHOsfu8MAoGCCqGSM49BAMCA0cAMEQCIBrq8UmYCAXDysgg1nVZp90EUkF8YpX4y4KwChxkkEoTAiBwpCBqGkjjhnk4AcAxPDD35jIW2iaBkmMfQ3E99tsQEg==")
+            /*
             new TestData(encodedEhnCert: "HC1:6BFOXN*TS0BI$ZD4N9:9S6RCVN5+O30K3/XIV0W23NTDEXWK G2EP4J0BGJLFX3R3VHXK.PJ:2DPF6R:5SVBHABVCNN95SWMPHQUHQN%A0SOE+QQAB-HQ/HQ7IR.SQEEOK9SAI4- 7Y15KBPD34  QWSP0WRGTQFNPLIR.KQNA7N95U/3FJCTG90OARH9P1J4HGZJKBEG%123ZC$0BCI757TLXKIBTV5TN%2LXK-$CH4TSXKZ4S/$K%0KPQ1HEP9.PZE9Q$95:UENEUW6646936HRTO$9KZ56DE/.QC$Q3J62:6LZ6O59++9-G9+E93ZM$96TV6NRN3T59YLQM1VRMP$I/XK$M8PK66YBTJ1ZO8B-S-*O5W41FD$ 81JP%KNEV45G1H*KESHMN2/TU3UQQKE*QHXSMNV25$1PK50C9B/9OK5NE1 9V2:U6A1ELUCT16DEETUM/UIN9P8Q:KPFY1W+UN MUNU8T1PEEG%5TW5A 6YO67N6BBEWED/3LS3N6YU.:KJWKPZ9+CQP2IOMH.PR97QC:ACZAH.SYEDK3EL-FIK9J8JRBC7ADHWQYSK48UNZGG NAVEHWEOSUI2L.9OR8FHB0T5HM7I", keyId: "jt4zFtTaQYGB8HU6/8ajow==", encodedSigningCert: "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"),
             new TestData(encodedEhnCert: "HC1:NCFOXN%TS3DHZN4HAF*PQFKKGTNA.Q/R8WRU2FCGJ9+NK5DOW%I LMC9GPJPC%OQHIZC4.OI1RM8ZA.A53XHMKN4NN3F85QNCY0O%0VZ001HOC9JU0D0HT0HO1PM:K$$09B9LW4T*8+DC%H0PZBITH$*SBAKYE9*FJTJAHD4UDADPSDJIM4KF/B0C2SFIH:9$GCQOS62PR6WPHN6D7LLK*2HG%89UV-0LZ 2ZJJ4FF86O:HO73SM1IO-O.Z80GHS-O:S9UZ4+FJE 4Y3LL/II 07LPMIH-O9XZQSH9R$FXQGDVBK*RZP3:*DG1W7SGT$7S%RMSG2UQYI9*FGCPAXRQ3E2N+E .1:L7O:7X/5Q+MSA7G6MBYO+JQLHP71RJW63X7VUONC6V35HW6SZ6FT5D75W9AV88E34+V4YC5/HQWOQ6$S4N4U01IUJBW0K$HY5B+4SFX3K*6SHLXCQBSIMIJ4:A50KN3FXLT9TDPARD-H-BT/5INWBT6UC.U$PGKC1MPBTYL$PMYWQP2KDICA PY*47IO950 $OJ0", keyId: "WTOXYrYS47o=", encodedSigningCert: "MIIBIzCByqADAgECAgRi5XwLMAoGCCqGSM49BAMCMBAxDjAMBgNVBAMMBUVDLU1lMB4XDTIxMDQyMzEwMzc1NVoXDTIxMDUyMzEwMzc1NVowEDEOMAwGA1UEAwwFRUMtTWUwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAAT4pyqh0AMFtrN/rLF4tKBB+Rhp6ttuC6JTQ4c4fIy9f6H/Hjko8v6fYWkz3WrhKV7e0ScI4RLbT6nrv/F/6sJQoxIwEDAOBgNVHQ8BAf8EBAMCBaAwCgYIKoZIzj0EAwIDSAAwRQIhAMQjFFnmgFx1scLH6+iY9Vyu3EYkHEzNXUv7Zr/H6gJDAiAw7Sry/U7h/X+Hk1MncAqln7dpK2MDKABc46ByFwZ+Bw=="),
             new TestData(encodedEhnCert: "HC1:NCFOXN%TS3DHZN4HAF*PQFKKGTNA.Q/R8WRU2FC6L9N*CH PC.IU:N AJPJPC%OQHIZC4.OI1RM8ZA.A53XHMKN4NN3F85QNCY0O%0VZ001HOC9JU0D0HT0HO1PM:K$$09B9LW4T*8+DC%H0PZBITH$*SBAKYE9*FJTJAHD4UDADPSDJIM4KF/B0C2SFIH:9$GCQOS62PR6WPHN6D7LLK*2HG%89UV-0LZ 2ZJJ4FF86O:HO73SM1IO-O.Z80GHS-O:S9UZ4+FJE 4Y3LL/II 07LPMIH-O9XZQSH9R$FXQGDVBK*RZP3:*DG1W7SGT$7S%RMSG2UQYI9*FGCPAXRQ3E2N+E .1:L7O:7X/5Q+MSA7G6MBYO+JQLHP71RJW63X7VUONC6V35HW6SZ6FT5D75W9AV88E34+V4YC5/HQWOQ6$S4N4N31SHPO3Q0E447H9VAK:6.5G$N3ZF7W2SBJT7QG+8UJII3MACIBG2U76MGX3$YB.S7PIJRVOBTN6DTEUIOS7ZKJJEL%.B PT2LO36KT8SP50M/O$4", keyId: "WTOXYrYS47o=", encodedSigningCert: "MIIBIzCByqADAgECAgRi5XwLMAoGCCqGSM49BAMCMBAxDjAMBgNVBAMMBUVDLU1lMB4XDTIxMDQyMzEwMzc1NVoXDTIxMDUyMzEwMzc1NVowEDEOMAwGA1UEAwwFRUMtTWUwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAAT4pyqh0AMFtrN/rLF4tKBB+Rhp6ttuC6JTQ4c4fIy9f6H/Hjko8v6fYWkz3WrhKV7e0ScI4RLbT6nrv/F/6sJQoxIwEDAOBgNVHQ8BAf8EBAMCBaAwCgYIKoZIzj0EAwIDSAAwRQIhAMQjFFnmgFx1scLH6+iY9Vyu3EYkHEzNXUv7Zr/H6gJDAiAw7Sry/U7h/X+Hk1MncAqln7dpK2MDKABc46ByFwZ+Bw==")
-/*
+
             new TestData(encodedEhnCert: "HC1:NCFOXN%TS3DH0ZS2F97O2RXO5Y5CID:D4I$B%CM*Y4OBO*ZOJ*IMANZ9HPJPC%OQHIZC4VRMRPI:OI1%A395O.OAHA5VRCPIUF2FVPQJAZM93$UWW2QRA H99QHYOOQRA5RUXT25SIOH66L6SR9MU9DV5 R18AGZKHBKB3YUCIG%X4+$SS/CLS4:35HFER/F//CTIIH+G260H23+5JH$2.FV5DJ5DJBITEP47*KH-2.C30$9:Q6300AL8GWKSMIMXAH:O/B9/UIQRAFTQ2JATK2YJADG6JD3YW4:3TLD37UJBG7ME7ND33836:IOS0LS400T*OVAZ2M$BO.A29BLZI19JA2K7VA$IJVTIWZJ$7K+ CUEDDIKZ9C.PDH0JW1JY*R/8BN-A1DLNCKQ20HT8NN8VI9 KE.I90QN5IKXBHLII3.K$JL4HG9LN$II-GG0JIBHH.HIEKNTII7JJ-92$P6JD1F671NI+*RPKAOSHB.IUK96QF1%1RMN661V+JW29:VB/8TEXOV8O/DR-Z644SCL9U-LV5UD2MQAE5PTDRAP17+6D$P8HVK7DMZ5H$VPT406H5K5", keyId: "8TRqlBQxUbQ", encodedSigningCert: "MIIBIzCByqADAgECAgQbc6tlMAoGCCqGSM49BAMCMBAxDjAMBgNVBAMMBUVDLU1lMB4XDTIxMDQyMDA3Mjg1MVoXDTIxMDUyMDA3Mjg1MVowEDEOMAwGA1UEAwwFRUMtTWUwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAASAnF9trnoiLJxV8zkWDCv4jM9/ls3bC5vVt/+oXkgHCOndb7e/7stg1OP64Gh3l/k64MlTBdR448bQA1IPXgOcoxIwEDAOBgNVHQ8BAf8EBAMCBaAwCgYIKoZIzj0EAwIDSAAwRQIgcRqHvybuL5WlAlNusu++a+cR1onTcj9VeH9ymNsFnQUCIQDfs95vijEGiXZEz2D8LF2umf1zBHvTo2s9u8EW92NypA=="),
             new TestData(encodedEhnCert: "HC1:NCFD:MFY7N/Q.53VEEWRH7ATC3NY5F*DKNBV04E/IE/ZGM:MS1FA7RR4RA/4VDTTJPJ848DRR*S*:2GG90P2PL7THV$ZMDB8Q7EESNKT5X97G090R8 2DO$BK-R0245.VW.1D-J5OSCCU+ZNXSP42O% 4W*L28KKQ1WIPTDSE%FX:2J6O/LCW7V96DN%FTWD6.5BH5I+I2I9R+IPHK6 8FTCFXB$22CSOEPM:$VF M784PMB71OIWMMPALHBPCCYI5B.PK-P$CBXF5%S2WG6:3K.NJL$4P Q/YEEC7V24DQ3U 2TBA9XEB1D+JAP%5LOCLIAY 4HBD-UN3 PHXUEES:XJG/KHK67TM3H0ZK1MEERYA*B7F4MCLJK$9TMQPIA4%68DH GP+FGN%3KO8H5BH941MEN*9/OJHQG:K6S30B98Y63P P8OHOZKK$7IAS$Q8Z.8X0WCE6$J1UFJ56GBS8P-TUD9VN0SR2UPLLN9E469F0J.NNO4QT3240Q57F8C:TP1 M3DGRMSIWK7MRF9WC1S5RJ4 FT TGLV3WMK5I6MF+RGZ:NNQU9ARK2G7D7%+8I8S$2U7%INWK8RFW5ELQRMKTD6763D 1G-HOL$V*7HTN752E%O7:CFU.2WM365", keyId: "8TRqlBQxUbQ", encodedSigningCert: "MIIBIzCByqADAgECAgQbc6tlMAoGCCqGSM49BAMCMBAxDjAMBgNVBAMMBUVDLU1lMB4XDTIxMDQyMDA3Mjg1MVoXDTIxMDUyMDA3Mjg1MVowEDEOMAwGA1UEAwwFRUMtTWUwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAASAnF9trnoiLJxV8zkWDCv4jM9/ls3bC5vVt/+oXkgHCOndb7e/7stg1OP64Gh3l/k64MlTBdR448bQA1IPXgOcoxIwEDAOBgNVHQ8BAf8EBAMCBaAwCgYIKoZIzj0EAwIDSAAwRQIgcRqHvybuL5WlAlNusu++a+cR1onTcj9VeH9ymNsFnQUCIQDfs95vijEGiXZEz2D8LF2umf1zBHvTo2s9u8EW92NypA=="),
             new TestData(encodedEhnCert: "HC1:NCFOXN%TS3DH0ZS2F97O2RXO5Y5CIDDH4%%5OGI+MHY5EM*489A+OFKQCAQCCV4*XUT3PDJPO-OJX1H:O/B9/UIQRAFTQ2JATK2YJADG6JD3YW4:3TLD37UJBG7ME7ND33836:IOS0LS400T*OVN%2LXK6*K$X4%*4HBTSCNT 4C%C47T+*4.$S6ZC0JB7MBKD34LTAGJ%4JI$46S4:-KJC3HC3183N:2I$4J%59/9+T53ZM$96PZ6+Q6X46E/9M.5+NN4A7XHMDYPWGO%42E8QFW6DX7 N6HK8+GO5D6L*O/HQB+P *PUHPM+Q3IRL*O-+RWGO-*OWGOQ+QNR2UMO+00ZS2C9EH9WQ5QRYA/BWSZ8CBO77CT77WQL 2O/VC9N37/PKRBIVAU82NKLL5MZWQ X5V1OV6IWLE%:6CB7G%9JPFHMVDTFVFD8NEZLHIAVAA0JY7U5", keyId: "8TRqlBQxUbQ", encodedSigningCert: "MIIBIzCByqADAgECAgQbc6tlMAoGCCqGSM49BAMCMBAxDjAMBgNVBAMMBUVDLU1lMB4XDTIxMDQyMDA3Mjg1MVoXDTIxMDUyMDA3Mjg1MVowEDEOMAwGA1UEAwwFRUMtTWUwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAASAnF9trnoiLJxV8zkWDCv4jM9/ls3bC5vVt/+oXkgHCOndb7e/7stg1OP64Gh3l/k64MlTBdR448bQA1IPXgOcoxIwEDAOBgNVHQ8BAf8EBAMCBaAwCgYIKoZIzj0EAwIDSAAwRQIgcRqHvybuL5WlAlNusu++a+cR1onTcj9VeH9ymNsFnQUCIQDfs95vijEGiXZEz2D8LF2umf1zBHvTo2s9u8EW92NypA=="),
@@ -182,15 +213,8 @@ namespace DGC.Tests
                 var certBytes = Convert.FromBase64String(cert.First().encodedSigningCert);
                 
                 var x509certificate = parser.ReadCertificate(certBytes);
-                /*
-                using (SHA256 mySHA256 = SHA256.Create())
-                {
-                    var hash = mySHA256.ComputeHash(x509certificate.GetEncoded());
-                    var hash8 = hash.Take(8).ToArray();
-                    var kidd = Convert.ToBase64String(hash8);
-                }*/
 
-                secrataryService.AddPublicKey(cert.Key, x509certificate.GetPublicKey());
+                secrataryService.AddPublicKey(cert.Key, x509certificate);
             }
 
             var decoder = new GreenCertificateDecoder();

@@ -5,6 +5,8 @@ using System.Text.RegularExpressions;
 
 namespace DGC
 {
+
+
     public static class MrzEncoder
     {
         private static Dictionary<char, string> CHAR_MAPPINGS = new Dictionary<char, string>

@@ -18,7 +18,7 @@ namespace DGC
         /// </summary>
         [JsonProperty("dob")]
         [JsonConverter(typeof(CustomDateTimeConverter))]
-        public DateTime DateOfBirth { get; set; }
+        public DateTimeOffset DateOfBirth { get; set; }
 
         /// <summary>
         /// Surname(s), given name(s) - in that order
@@ -110,18 +110,21 @@ namespace DGC
         /// ISO 8601 Date: Certificate Valid From
         /// </summary>
         [JsonProperty("df")]
+        [JsonConverter(typeof(CustomDateTimeConverter))]
         public DateTimeOffset ValidFrom { get; set; }
 
         /// <summary>
         /// Certificate Valid Until
         /// </summary>
         [JsonProperty("du")]
+        [JsonConverter(typeof(CustomDateTimeConverter))]
         public DateTimeOffset ValitUntil { get; set; }
 
         /// <summary>
         /// ISO 8601 Date of First Positive Test Result
         /// </summary>
         [JsonProperty("fr")]
+        [JsonConverter(typeof(CustomDateTimeConverter))]
         public DateTimeOffset FirstPositiveTestResult { get; set; }
 
         /// <summary>
@@ -157,6 +160,7 @@ namespace DGC
         /// Date/Time of Test Result
         /// </summary>
         [JsonProperty("dr", NullValueHandling = NullValueHandling.Ignore)]
+        [JsonConverter(typeof(NoMillisDateTimeConverter))]
         public DateTimeOffset? TestResutDate { get; set; }
 
         /// <summary>
@@ -182,6 +186,7 @@ namespace DGC
         /// Date/Time of Sample Collection
         /// </summary>
         [JsonProperty("sc")]
+        [JsonConverter(typeof(NoMillisDateTimeConverter))]
         public DateTimeOffset SampleTakenDate { get; set; }
 
         /// <summary>
@@ -235,6 +240,7 @@ namespace DGC
         /// Date of Vaccination
         /// </summary>
         [JsonProperty("dt")]
+        [JsonConverter(typeof(CustomDateTimeConverter))]
         public DateTimeOffset VaccinationDate { get; set; }
 
         /// <summary>
@@ -280,6 +286,14 @@ namespace DGC
         public CustomDateTimeConverter()
         {
             DateTimeFormat = "yyyy-MM-dd";
+        }
+    }
+
+    public class NoMillisDateTimeConverter : IsoDateTimeConverter
+    {
+        public NoMillisDateTimeConverter()
+        {
+            DateTimeFormat = "yyyy-MM-ddTHH:mm:ssZ";
         }
     }
 }

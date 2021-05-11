@@ -1,5 +1,4 @@
 ﻿using DGC;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Org.BouncyCastle.X509;
@@ -10,7 +9,6 @@ using System.Linq;
 
 namespace dgc.testdata.tests
 {
-    [TestClass]
     public class DGCTestDataVerifier
     {
         record TestData(string prefix, string certificate, string filename);
@@ -22,7 +20,6 @@ namespace dgc.testdata.tests
         public record TESTCTX(string VERSION, string SCHEMA, string CERTIFICATE, DateTime VALIDATIONCLOCK, string DESCRIPTION);
         public record TestDataStructure(JObject JSON, string CBOR, string COSE, string COMPRESSED, string BASE45, string PREFIX, string x2DCODE, TESTCTX TESTCTX, EXPECTEDRESULTS EXPECTEDRESULTS);
 
-        [TestMethod]
         public void TestAll()
         {
             var jsonfiles = Directory.GetFiles("dgc-testdata", "*.json", SearchOption.AllDirectories);
@@ -51,11 +48,11 @@ namespace dgc.testdata.tests
                 try
                 {
                     var cwt = dcgDecoder.Decode(testdata.PREFIX);
-                    if (!secretariat.GetPublicKeys(cwt.CoseMessage.KID).Any())
+                    if (!secretariat.GetCertificate(cwt.CoseMessage.KID).Any())
                     {
                         var certBytes = Convert.FromBase64String(testdata.TESTCTX.CERTIFICATE);
                         var x509certificate = parser.ReadCertificate(certBytes);
-                        secretariat.AddPublicKey(cwt.CoseMessage.KID, x509certificate.GetPublicKey());
+                        secretariat.AddPublicKey(cwt.CoseMessage.KID, x509certificate);
                     }
 
                     var (isvalid, reason) = verifier.Verify(cwt);

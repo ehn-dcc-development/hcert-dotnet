@@ -1,13 +1,13 @@
-﻿using Org.BouncyCastle.Crypto;
+﻿using Org.BouncyCastle.X509;
 using System.Collections.Generic;
 
 namespace DGC
 {
     public class SecretariatService
     {
-        readonly Dictionary<string, List<AsymmetricKeyParameter>> trustedPublicKeys = new Dictionary<string, List<AsymmetricKeyParameter>>();
+        readonly Dictionary<string, List<X509Certificate>> trustedPublicKeys = new Dictionary<string, List<X509Certificate>>();
 
-        public IEnumerable<AsymmetricKeyParameter> GetPublicKeys(string kid)
+        public IEnumerable<X509Certificate> GetCertificate(string kid)
         {
             if (trustedPublicKeys.TryGetValue(kid, out var publicKeys))
             {
@@ -15,13 +15,13 @@ namespace DGC
             }
             else
             {
-                return new List<AsymmetricKeyParameter>();
+                return new List<X509Certificate>();
             }
         }
 
-        public void AddPublicKey(string keyId, AsymmetricKeyParameter publicKey)
+        public void AddPublicKey(string keyId, X509Certificate cert)
         {
-            trustedPublicKeys.Add(keyId, new List<AsymmetricKeyParameter> { publicKey });
+            trustedPublicKeys.Add(keyId, new List<X509Certificate> { cert });
         }
     }
 }

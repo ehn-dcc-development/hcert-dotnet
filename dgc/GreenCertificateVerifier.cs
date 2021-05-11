@@ -19,13 +19,13 @@ namespace DGC
         /// <returns>(true, null) if valid, (false, reason) if not valid</returns>
         public (bool, string) Verify(CWT cwt)
         {
-            var publicKeys = _secretariatService.GetPublicKeys(cwt.CoseMessage.KID);
-            if (publicKeys.Any())
+            var certificates = _secretariatService.GetCertificate(cwt.CoseMessage.KID);
+            if (certificates.Any())
             {
                 bool? validSignature = null;
-                foreach (var publicKey in publicKeys)
+                foreach (var certificate in certificates)
                 {
-                    validSignature = cwt.CoseMessage.VerifySignature(publicKey);
+                    validSignature = cwt.CoseMessage.VerifySignature(certificate.GetPublicKey());
                 }
                 if (!validSignature.HasValue)
                     return (false, "KID public key not found");

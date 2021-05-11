@@ -96,9 +96,10 @@ namespace DGC
             
             var unProtectedMap = CBORObject.NewMap();
             coseObj.Add(unProtectedMap);
-            
-            coseObj.Add(CBORObject.FromObjectAndTag(Content, CoseHeader_Content));
-            coseObj.Add(CBORObject.FromObjectAndTag(Signature, CoseHeader_Signature));
+
+            coseObj.Add(Content);
+            coseObj.Add(Signature);
+
             return CBORObject.FromObjectAndTag(coseObj, Sign1Tag).EncodeToBytes();
         }
 
