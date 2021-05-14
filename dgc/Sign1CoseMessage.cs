@@ -90,7 +90,7 @@ namespace DGC
             }
 
             var kidBytes = Convert.FromBase64String(KID);
-            protectedMap[HeaderKey_KID] = CBORObject.FromObjectAndTag(kidBytes, 4);
+            protectedMap[HeaderKey_KID] = CBORObject.FromObject(kidBytes);
 
             coseObj.Add(protectedMap.EncodeToBytes());
             
@@ -127,7 +127,7 @@ namespace DGC
                 throw new NotSupportedException("Algorithm not supported");
             }
             var kidBytes = Convert.FromBase64String(keyid);
-            protectedMap[HeaderKey_KID] = CBORObject.FromObjectAndTag(kidBytes, 4);
+            protectedMap[HeaderKey_KID] = CBORObject.FromObject(kidBytes);
 
             signer.Init(true, keypair.Private);
             var cborArray = CBORObject.NewArray();

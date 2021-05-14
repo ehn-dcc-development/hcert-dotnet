@@ -1,20 +1,35 @@
+using System;
 using System.IO;
+using System.Linq;
 using ICSharpCode.SharpZipLib.Zip.Compression;
 using ICSharpCode.SharpZipLib.Zip.Compression.Streams;
 using NL.MinVWS.Encoding;
 using Org.BouncyCastle.Crypto;
+using Org.BouncyCastle.X509;
 
 namespace DGC
 {
     public class GreenCertificateEncoder
     {
-        private readonly AsymmetricCipherKeyPair keypair;
+        private readonly AsymmetricCipherKeyPair _keypair;
         private readonly string _keyid;
 
         public GreenCertificateEncoder(AsymmetricCipherKeyPair keypair, string keyid)
         {
-            this.keypair = keypair;
+            _keypair = keypair;
             _keyid = keyid;
+        }
+
+        public GreenCertificateEncoder(X509Certificate certificate, AsymmetricKeyParameter privateKey)
+        {
+            _keypair = new AsymmetricCipherKeyPair(certificate.GetPublicKey(), privateKey);
+
+            using (var mySHA256 = System.Security.Cryptography.SHA256.Create())
+            {
+                var hash = mySHA256.ComputeHash(certificate.GetEncoded());
+                var hash8 = hash.Take(8).ToArray();
+                _keyid = Convert.ToBase64String(hash8);
+            }
         }
 
         public class EncodeIntermediateData
@@ -68,13 +83,13 @@ namespace DGC
             var msg = new Sign1CoseMessage();
             msg.Content = cborBytes;
 
-            if (keypair.Private is Org.BouncyCastle.Crypto.Parameters.RsaPrivateCrtKeyParameters)
+            if (_keypair.Private is Org.BouncyCastle.Crypto.Parameters.RsaPrivateCrtKeyParameters)
             {
-                msg.Sign(keypair, DGCertSupportedAlgorithm.PS256, _keyid);
+                msg.Sign(_keypair, DGCertSupportedAlgorithm.PS256, _keyid);
             }
-            else if (keypair.Private is Org.BouncyCastle.Crypto.Parameters.ECKeyParameters)
+            else if (_keypair.Private is Org.BouncyCastle.Crypto.Parameters.ECKeyParameters)
             {
-                msg.Sign(keypair, DGCertSupportedAlgorithm.ES256, _keyid);
+                msg.Sign(_keypair, DGCertSupportedAlgorithm.ES256, _keyid);
             }
             else
             {

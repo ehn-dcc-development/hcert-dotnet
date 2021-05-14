@@ -17,8 +17,8 @@ namespace DGC
                 Format = ZXing.BarcodeFormat.QR_CODE,
                 Options = new ZXing.QrCode.QrCodeEncodingOptions
                 {
-                    Height = 250,
-                    Width = 250,
+                    Height = 400,
+                    Width = 400,
 
                     // 25% error correction
                     ErrorCorrection = ErrorCorrectionLevel.Q
