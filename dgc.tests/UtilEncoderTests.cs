@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace dgc.tests
+namespace DGC.Tests
 {
     [TestClass]
     public class UtilEncoderTests
@@ -21,7 +21,7 @@ namespace dgc.tests
         [TestMethod]
         public void LuahModN_TEST()
         {
-            Assert.AreEqual('Z', LuhnModN.GenerateCheckCharacter("01LUX/1873751242292 3"));
+            Assert.AreEqual('E', LuhnModN.GenerateCheckCharacter("01LUX/1873751242292 3"));
         }
     }
 }
