@@ -6,7 +6,7 @@ namespace DGC
     {
         public static char GenerateCheckCharacter(string input)
         {
-            const string charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#/:";
+            const string charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/:";
             int factor = 2;
             int sum = 0;
             int n = charset.Length;
