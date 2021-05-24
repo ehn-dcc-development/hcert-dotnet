@@ -9,17 +9,15 @@ namespace dgc.Gateway
 {
     public class GatewayService
     {
-        public GatewayService(string baseAddress, string certificatePfxPath, string certificatePassword)
+        public GatewayService(string baseAddress, X509Certificate2 certificate)
         {
             _baseAddress = baseAddress;
-            _certificatePath = certificatePfxPath;
-            _certificatePassword = certificatePassword;
+            _certificate = certificate;
         }
 
         private string _baseAddress;
-        private string _certificatePath;
-        private string _certificatePassword;
-
+        private readonly X509Certificate2 _certificate;
+        
         private HttpClient _httpClient;
         private HttpClient HttpClient
         {
@@ -29,12 +27,11 @@ namespace dgc.Gateway
                 var address = new Uri(_baseAddress);
 
                 var handler = new HttpClientHandler();
-                if (!string.IsNullOrEmpty(_certificatePath))
+                if (_certificate != null)
                 {
                     handler.ClientCertificateOptions = ClientCertificateOption.Manual;
                     handler.SslProtocols = SslProtocols.Tls12;
-                    var file = System.IO.File.ReadAllBytes(_certificatePath);
-                    handler.ClientCertificates.Add(new X509Certificate2(file, _certificatePassword));
+                    handler.ClientCertificates.Add(_certificate);
                 }
                 var client = new HttpClient(handler);
                 client.BaseAddress = address;

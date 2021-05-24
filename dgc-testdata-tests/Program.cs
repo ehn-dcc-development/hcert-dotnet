@@ -10,6 +10,7 @@ namespace dgc.testdata.tests
     {
         static void Main(string[] args)
         {
+            DGCTestDataVerifier.TestAll();
         }
     }
 }

@@ -20,12 +20,12 @@ namespace dgc.testdata.tests
         public record TESTCTX(string VERSION, string SCHEMA, string CERTIFICATE, DateTime VALIDATIONCLOCK, string DESCRIPTION);
         public record TestDataStructure(JObject JSON, string CBOR, string COSE, string COMPRESSED, string BASE45, string PREFIX, string x2DCODE, TESTCTX TESTCTX, EXPECTEDRESULTS EXPECTEDRESULTS);
 
-        public void TestAll()
+        public static void TestAll()
         {
             var jsonfiles = Directory.GetFiles("dgc-testdata", "*.json", SearchOption.AllDirectories);
 
             var testdataset = new List<Tuple<TestDataStructure,string>>();
-            foreach (var jsonTestDataFile in jsonfiles)
+            foreach (var jsonTestDataFile in jsonfiles.Where(p => p.Contains("DE")))
             {
                 using var file = File.OpenText(jsonTestDataFile);
                 try
@@ -45,6 +45,7 @@ namespace dgc.testdata.tests
             foreach (var testdataAndFile in testdataset)
             {
                 var testdata = testdataAndFile.Item1;
+                var errorMessage = "Test Passes";
                 try
                 {
                     var cwt = dcgDecoder.Decode(testdata.PREFIX);
@@ -56,11 +57,21 @@ namespace dgc.testdata.tests
                     }
 
                     var (isvalid, reason) = verifier.Verify(cwt);
+                    if (testdata.EXPECTEDRESULTS.EXPECTEDVERIFY && !isvalid)
+                    {
+                        errorMessage = "Verify failes" + reason;
+                    }
+
                     //Assert.IsTrue(isvalid, reason);
                 }
                 catch (Exception ex)
                 {
+                    if (!testdata.EXPECTEDRESULTS.EXPECTEDVALIDOBJECT)
+                    {
+                        errorMessage = ex.Message;
+                    }
                 }
+                Console.WriteLine(testdataAndFile.Item1 + " " + errorMessage);
             }
         }
     }
