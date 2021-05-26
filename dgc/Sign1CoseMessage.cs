@@ -28,7 +28,7 @@ namespace DGC
         public byte[] Signature { get; set; }
         public DGCertSupportedAlgorithm RegisteredAlgorithm { get; private set; }
         public string KID { get; private set; }
-        public CBORObject ProtectedMap { get; private set; }
+        public byte[] ProtectedBytes { get; set; }
 
         public static Sign1CoseMessage DecodeFromBytes(byte[] coseBytes)
         { 
@@ -46,7 +46,7 @@ namespace DGC
             var coseMsg = new Sign1CoseMessage();
             coseMsg.Content = cborMsg[CoseHeader_Content].GetByteString();
             coseMsg.Signature = cborMsg[CoseHeader_Signature].GetByteString();
-            coseMsg.ProtectedMap = protectedMap;
+            coseMsg.ProtectedBytes = protectedBytes;
 
             var algKey = protectedMap[HeaderKey_Alg];
             if (algKey.AsInt32() == Alg_ES256.AsInt32())
@@ -172,7 +172,7 @@ namespace DGC
             
             var cborArray = CBORObject.NewArray();
             cborArray.Add(ContextSignature1);
-            cborArray.Add(ProtectedMap.EncodeToBytes());
+            cborArray.Add(ProtectedBytes);
             cborArray.Add(new byte[0]); // no externaldata
             cborArray.Add(Content);
 
