@@ -8,18 +8,23 @@ namespace dgc.Valuesets
 {
     public static class Valuessets
     {
-        public static Dictionary<string, Valueset> DiseaseAgentTargeted { get; } = ParseJsonValueset(Path.Combine("Valuesets", "disease-agent-targeted.json"));
-        public static Dictionary<string, Valueset> TestManf { get; } = ParseJsonValueset(Path.Combine("Valuesets", "test-manf.json"));
-        public static Dictionary<string, Valueset> TestResult { get; } = ParseJsonValueset(Path.Combine("Valuesets", "test-result.json"));
-        public static Dictionary<string, Valueset> VaccineMahManf { get; } = ParseJsonValueset(Path.Combine("Valuesets", "vaccine-mah-manf.json"));
-        public static Dictionary<string, Valueset> VaccineMedicinalProdoct { get; } = ParseJsonValueset(Path.Combine("Valuesets", "vaccine-medicinal-product.json"));
-        public static Dictionary<string, Valueset> VaccineProphylaxis { get; } = ParseJsonValueset(Path.Combine("Valuesets", "vaccine-prophylaxis.json"));
-
-        public static Dictionary<string, Valueset> ParseJsonValueset(string filename)
+        public static Dictionary<string, Valueset> DiseaseAgentTargeted { get; } = ParseJsonValueset("disease-agent-targeted.json");
+        public static Dictionary<string, Valueset> TestManf { get; } = ParseJsonValueset("test-manf.json");
+        public static Dictionary<string, Valueset> TestResult { get; } = ParseJsonValueset("test-result.json");
+        public static Dictionary<string, Valueset> TestTypes { get; } = ParseJsonValueset("test-type.json");
+        public static Dictionary<string, Valueset> VaccineMahManf { get; } = ParseJsonValueset("vaccine-mah-manf.json");
+        public static Dictionary<string, Valueset> VaccineMedicinalProdoct { get; } = ParseJsonValueset("vaccine-medicinal-product.json");
+        public static Dictionary<string, Valueset> VaccineProphylaxis { get; } = ParseJsonValueset("vaccine-prophylaxis.json");
+        
+        public static Dictionary<string, Valueset> ParseJsonValueset(string resourceName)
         {
             var valueset = new Dictionary<string, Valueset>();
-            using (var file = File.OpenText(filename))
-            using (var reader = new JsonTextReader(file))
+
+            var assembly = System.Reflection.Assembly.GetExecutingAssembly();
+            
+            using (Stream stream = assembly.GetManifestResourceStream("dgc.Valuesets." + resourceName))
+            using (StreamReader resourceStream = new StreamReader(stream))
+            using (var reader = new JsonTextReader(resourceStream))
             {
                 var root = (JObject)JToken.ReadFrom(reader);
 

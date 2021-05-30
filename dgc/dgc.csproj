@@ -2,7 +2,22 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Version>1.0.1</Version>
   </PropertyGroup>
+
+  <ItemGroup>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Valuesets\disease-agent-targeted.json" />
+    <EmbeddedResource Include="Valuesets\test-manf.json" />
+    <EmbeddedResource Include="Valuesets\test-result.json" />
+    <EmbeddedResource Include="Valuesets\test-type.json" />
+    <EmbeddedResource Include="Valuesets\vaccine-mah-manf.json" />
+    <EmbeddedResource Include="Valuesets\vaccine-medicinal-product.json" />
+    <EmbeddedResource Include="Valuesets\vaccine-prophylaxis.json" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="BouncyCastle.NetCore" Version="1.8.8" />
@@ -14,23 +29,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Valuesets\disease-agent-targeted.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Valuesets\test-manf.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Valuesets\test-result.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Valuesets\vaccine-mah-manf.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Valuesets\vaccine-medicinal-product.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Valuesets\vaccine-prophylaxis.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    <None Include="..\LICENSE">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
     </None>
   </ItemGroup>
 
