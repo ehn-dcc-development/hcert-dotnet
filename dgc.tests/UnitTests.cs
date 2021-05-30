@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json.Linq;
 using Org.BouncyCastle.Asn1.X509;
@@ -112,7 +113,7 @@ namespace DGC.Tests
         }
 
         [TestMethod]
-        public void EncodeDecode_RoundTrip_IsValid()
+        public async Task EncodeDecode_RoundTrip_IsValid()
         {
             var (keyid, cert, keypair) = CreateX509Cert();
 
@@ -124,14 +125,14 @@ namespace DGC.Tests
             scretariat.AddPublicKey(keyid, cert);
 
             var verifier = new GreenCertificateVerifier(scretariat);
-            var (isvalid, reason) = verifier.Verify(cwt);
+            var (isvalid, reason) = await verifier.Verify(cwt);
 
             Assert.IsTrue(isvalid, reason);
             Assert.IsTrue(JToken.DeepEquals(JToken.Parse(JsonSerializer.Serialize(cwtToTest.DGCv1)), JToken.Parse(JsonSerializer.Serialize(cwt.DGCv1))));
         }
 
         [TestMethod]
-        public void EncodeDecode_WrongPublicKey()
+        public async Task EncodeDecode_WrongPublicKey()
         {
             var (keyid, cert, keypair) = CreateX509Cert();
 
@@ -144,7 +145,7 @@ namespace DGC.Tests
             scretariat.AddPublicKey(keyid, cert);
             
             var verifier = new GreenCertificateVerifier(scretariat);
-            var (isvalid, reason) = verifier.Verify(cwt);
+            var (isvalid, reason) = await verifier.Verify(cwt);
 
             Assert.IsNotNull(reason);
             Assert.IsFalse(isvalid);
@@ -152,7 +153,7 @@ namespace DGC.Tests
         }
 
         [TestMethod]
-        public void EncodeDecode_RSAKeys()
+        public async Task EncodeDecode_RSAKeys()
         {
             var (keyid, cert, keypair) = CreateX509Cert();
 
@@ -164,7 +165,7 @@ namespace DGC.Tests
             scretariat.AddPublicKey(keyid, cert);
 
             var verifier = new GreenCertificateVerifier(scretariat);
-            var (isvalid, _) = verifier.Verify(cwt);
+            var (isvalid, _) = await verifier.Verify(cwt);
 
             Assert.IsTrue(isvalid);
             Assert.IsTrue(JToken.DeepEquals(JToken.Parse(JsonSerializer.Serialize(cwtToTest.DGCv1)), JToken.Parse(JsonSerializer.Serialize(cwt.DGCv1))));
@@ -203,7 +204,7 @@ namespace DGC.Tests
  */       };
 
         [TestMethod]
-        public void TestData_SmokeTest()
+        public async Task TestData_SmokeTest()
         {
             var secrataryService = new SecretariatService();
                         
@@ -223,7 +224,7 @@ namespace DGC.Tests
                 var dgc = decoder.Decode(cert.encodedEhnCert);
                 var verifier = new GreenCertificateVerifier(secrataryService);
                 
-                var (isvalid, reason) = verifier.Verify(dgc);
+                var (isvalid, reason) = await verifier.Verify(dgc);
                 // This all failes 
                 //Assert.IsTrue(isvalid, reason);
             }

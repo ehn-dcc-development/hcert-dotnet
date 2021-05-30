@@ -1,21 +1,23 @@
 ﻿using Org.BouncyCastle.X509;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace DGC
 {
-    public class SecretariatService
+    public class SecretariatService : ISecretariatService
     {
         readonly Dictionary<string, List<X509Certificate>> trustedPublicKeys = new Dictionary<string, List<X509Certificate>>();
 
-        public IEnumerable<X509Certificate> GetCertificate(string kid)
+        public Task<IEnumerable<X509Certificate>> GetCertificate(string kid)
         {
             if (trustedPublicKeys.TryGetValue(kid, out var publicKeys))
             {
-                return publicKeys;
+                return Task.FromResult(publicKeys.AsEnumerable());
             }
             else
             {
-                return new List<X509Certificate>();
+                return Task.FromResult(new List<X509Certificate>().AsEnumerable());
             }
         }
 

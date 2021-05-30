@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace dgc.testdata.tests
 {
@@ -20,18 +21,23 @@ namespace dgc.testdata.tests
         public record TESTCTX(string VERSION, string SCHEMA, string CERTIFICATE, DateTime VALIDATIONCLOCK, string DESCRIPTION);
         public record TestDataStructure(JObject JSON, string CBOR, string COSE, string COMPRESSED, string BASE45, string PREFIX, string x2DCODE, TESTCTX TESTCTX, EXPECTEDRESULTS EXPECTEDRESULTS);
 
-        public static void TestAll()
+        public static async Task TestAll()
         {
             var jsonfiles = Directory.GetFiles("dgc-testdata", "*.json", SearchOption.AllDirectories);
 
             var testdataset = new List<Tuple<TestDataStructure,string>>();
-            foreach (var jsonTestDataFile in jsonfiles.Where(p => p.Contains("DE")))
+            foreach (var jsonTestDataFile in jsonfiles.Where(p => p.Contains("AT")))
             {
                 using var file = File.OpenText(jsonTestDataFile);
                 try
                 {
-                    var test = JsonConvert.DeserializeObject<TestDataStructure>(file.ReadToEnd());
-                    testdataset.Add(Tuple.Create(test, jsonTestDataFile));
+                    var jsonStr = file.ReadToEnd();
+                    /*if (jsonStr.Contains("GATEWAY-ENV"))
+                    {*/
+                        var test = JsonConvert.DeserializeObject<TestDataStructure>(jsonStr);
+
+                        testdataset.Add(Tuple.Create(test, jsonTestDataFile));
+                    //}
                 }
                 catch (Exception)
                 {
@@ -49,14 +55,14 @@ namespace dgc.testdata.tests
                 try
                 {
                     var cwt = dcgDecoder.Decode(testdata.PREFIX);
-                    if (!secretariat.GetCertificate(cwt.CoseMessage.KID).Any())
+                    if (!(await secretariat.GetCertificate(cwt.CoseMessage.KID)).Any())
                     {
                         var certBytes = Convert.FromBase64String(testdata.TESTCTX.CERTIFICATE);
                         var x509certificate = parser.ReadCertificate(certBytes);
                         secretariat.AddPublicKey(cwt.CoseMessage.KID, x509certificate);
                     }
 
-                    var (isvalid, reason) = verifier.Verify(cwt);
+                    var (isvalid, reason) = await verifier.Verify(cwt);
                     if (testdata.EXPECTEDRESULTS.EXPECTEDVERIFY && !isvalid)
                     {
                         errorMessage = "Verify failes" + reason;
