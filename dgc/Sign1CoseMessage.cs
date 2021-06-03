@@ -35,7 +35,6 @@ namespace DGC
             var cborMsg = CBORObject.DecodeFromBytes(coseBytes);
 
             if (cborMsg.Type != CBORType.Array) throw new InvalidDataException("Message is not a COSE security message.");
-            if (cborMsg.MostOuterTag.ToInt32Checked() != Sign1Tag) throw new InvalidDataException("Message is not a COSE security message.");
             if (cborMsg.Count != 4) throw new InvalidDataException("Invalid Sign1 structure");
 
             var protectedBytes = cborMsg[CoseHeader_ProtectedMap].GetByteString();
