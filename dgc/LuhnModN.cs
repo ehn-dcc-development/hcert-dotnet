@@ -1,6 +1,6 @@
 ﻿using System.Linq;
 
-namespace DGC
+namespace DCC
 {
     public static class LuhnModN
     {

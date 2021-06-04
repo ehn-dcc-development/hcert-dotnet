@@ -4,7 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 
-namespace dgc.Valuesets
+namespace DCC.Valuesets
 {
     public static class Valuessets
     {

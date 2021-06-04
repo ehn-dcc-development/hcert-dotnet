@@ -1,4 +1,4 @@
-﻿namespace DGC
+﻿namespace DCC
 {
     public enum DGCertSupportedAlgorithm
     {

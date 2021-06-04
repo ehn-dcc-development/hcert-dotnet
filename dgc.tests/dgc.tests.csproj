@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\dgc\dgc.csproj" />
+    <ProjectReference Include="..\dgc\DCC.csproj" />
   </ItemGroup>
 
 </Project>

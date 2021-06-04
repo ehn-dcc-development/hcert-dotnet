@@ -1,11 +1,12 @@
-﻿using DGC;
+﻿using DCC;
+using DGC;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Org.BouncyCastle.X509;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 
 namespace dgc.testdata.tests
@@ -23,10 +24,10 @@ namespace dgc.testdata.tests
 
         public static async Task TestAll()
         {
-            var jsonfiles = Directory.GetFiles("dgc-testdata", "*.json", SearchOption.AllDirectories);
+            var jsonfiles = Directory.GetFiles(@"./dgc-testdata", "*.json", SearchOption.AllDirectories);
 
             var testdataset = new List<Tuple<TestDataStructure,string>>();
-            foreach (var jsonTestDataFile in jsonfiles.Where(p => p.Contains("AT")))
+            foreach (var jsonTestDataFile in jsonfiles)
             {
                 using var file = File.OpenText(jsonTestDataFile);
                 try
@@ -44,7 +45,6 @@ namespace dgc.testdata.tests
                 }
             }
 
-            var parser = new X509CertificateParser();
             var dcgDecoder = new GreenCertificateDecoder();
             var secretariat = new SecretariatService();
             var verifier = new GreenCertificateVerifier(secretariat);
@@ -58,17 +58,15 @@ namespace dgc.testdata.tests
                     if (!(await secretariat.GetCertificate(cwt.CoseMessage.KID)).Any())
                     {
                         var certBytes = Convert.FromBase64String(testdata.TESTCTX.CERTIFICATE);
-                        var x509certificate = parser.ReadCertificate(certBytes);
+                        var x509certificate = new X509Certificate2(certBytes);
                         secretariat.AddPublicKey(cwt.CoseMessage.KID, x509certificate);
                     }
 
-                    var (isvalid, reason) = await verifier.Verify(cwt);
+                    var (isvalid, reason) = await verifier.Verify(cwt, testdata.TESTCTX.VALIDATIONCLOCK);
                     if (testdata.EXPECTEDRESULTS.EXPECTEDVERIFY && !isvalid)
                     {
-                        errorMessage = "Verify failes" + reason;
+                        errorMessage = "Verify failes: " + reason;
                     }
-
-                    //Assert.IsTrue(isvalid, reason);
                 }
                 catch (Exception ex)
                 {
@@ -77,7 +75,7 @@ namespace dgc.testdata.tests
                         errorMessage = ex.Message;
                     }
                 }
-                Console.WriteLine(testdataAndFile.Item1 + " " + errorMessage);
+                Console.WriteLine(testdataAndFile.Item2 + " " + errorMessage);
             }
         }
     }

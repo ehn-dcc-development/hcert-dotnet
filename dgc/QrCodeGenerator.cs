@@ -2,7 +2,7 @@
 using System.IO;
 using ZXing.QrCode.Internal;
 
-namespace DGC
+namespace DCC
 {
     public static class QrCodeGenerator
     {

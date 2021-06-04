@@ -2,7 +2,7 @@ using Newtonsoft.Json;
 using PeterO.Cbor;
 using System;
 
-namespace DGC
+namespace DCC
 {
     public class CWT
     {

@@ -5,7 +5,7 @@ using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 
-namespace dgc.Gateway
+namespace DCC.Gateway
 {
     public class GatewayService
     {

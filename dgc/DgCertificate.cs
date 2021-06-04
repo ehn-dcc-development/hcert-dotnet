@@ -1,4 +1,4 @@
-namespace DGC
+namespace DCC
 {
     using System;
     using System.Collections.Generic;

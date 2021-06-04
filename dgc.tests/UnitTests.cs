@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
@@ -7,13 +6,8 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json.Linq;
-using Org.BouncyCastle.Asn1.X509;
-using Org.BouncyCastle.Crypto;
-using Org.BouncyCastle.Crypto.Generators;
-using Org.BouncyCastle.Crypto.Operators;
-using Org.BouncyCastle.Math;
-using Org.BouncyCastle.Security;
-using Org.BouncyCastle.X509;
+using DCC;
+using System.Security.Cryptography.X509Certificates;
 
 namespace DGC.Tests
 {
@@ -58,67 +52,48 @@ namespace DGC.Tests
             return cwt;
         }
 
-        private static (string, X509Certificate, AsymmetricCipherKeyPair) CreateX509Cert(bool useRSA = false)
+        private static (string, X509Certificate2) CreateX509Cert()
         {
-            var random = new SecureRandom();
-            AsymmetricCipherKeyPair keypair;
-            if (useRSA)
-            {
-                var keyGenerationParameters = new KeyGenerationParameters(random, 2048);
-                var generator = new RsaKeyPairGenerator();
-                generator.Init(keyGenerationParameters);
-                keypair = generator.GenerateKeyPair();
-            }
-            else
-            {
-                var keyGenerationParameters = new KeyGenerationParameters(random, 256);
-                var generator = new ECKeyPairGenerator();
-                generator.Init(keyGenerationParameters);
-                keypair = generator.GenerateKeyPair();
-            }            
-
-            IDictionary attrs = new Hashtable();
-            attrs[X509Name.E] = "E-Mail";
-            attrs[X509Name.CN] = "BL DSC 1";
-            attrs[X509Name.O] = "Bla";
-            attrs[X509Name.C] = "BL";
-            IList ord = new ArrayList();
-            ord.Add(X509Name.E);
-            ord.Add(X509Name.CN);
-            ord.Add(X509Name.O);
-            ord.Add(X509Name.C);
-            ISignatureFactory signatureFactory = useRSA ?
-                new Asn1SignatureFactory("SHA1withRSA", keypair.Private, random) :
-                new Asn1SignatureFactory("SHA256withECDSA", keypair.Private, random);
-            X509V3CertificateGenerator certGen = new X509V3CertificateGenerator();
-            certGen.SetSerialNumber(BigInteger.One);
-            certGen.SetIssuerDN(new X509Name(ord, attrs));
-            certGen.SetNotBefore(DateTime.Today.Subtract(new TimeSpan(1, 0, 0, 0)));
-            certGen.SetNotAfter(DateTime.Today.AddDays(365));
-            certGen.SetSubjectDN(new X509Name(ord, attrs));
-            certGen.AddExtension(X509Extensions.BasicConstraints, true, new BasicConstraints(false));
-            certGen.AddExtension(X509Extensions.AuthorityKeyIdentifier, true, new AuthorityKeyIdentifier(SubjectPublicKeyInfoFactory.CreateSubjectPublicKeyInfo(keypair.Public)));
-            certGen.SetPublicKey(keypair.Public);
-            var cert = certGen.Generate(signatureFactory);
+            var ecdsa = ECDsa.Create(); // generate asymmetric key pair
+            var req = new CertificateRequest("cn=testing", ecdsa, HashAlgorithmName.SHA256);
+            var cert = req.CreateSelfSigned(DateTimeOffset.Now, DateTimeOffset.Now.AddYears(5));
 
             var keyId = "";
             using (SHA256 mySHA256 = SHA256.Create())
             {
-                var hash = mySHA256.ComputeHash(cert.GetEncoded());
+                var hash = mySHA256.ComputeHash(cert.GetRawCertData());
                 var hash8 = hash.Take(8).ToArray();
                 keyId = Convert.ToBase64String(hash8);
             }
-            
-            return (keyId, cert, keypair);
+
+            return (keyId, cert);
+        }
+
+        private static (string, X509Certificate2) CreateX509RSACert()
+        {
+            var rsa = RSA.Create(); // generate asymmetric key pair
+            var req = new CertificateRequest("cn=testing", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pss);
+            var cert = req.CreateSelfSigned(DateTimeOffset.Now, DateTimeOffset.Now.AddYears(5));
+
+            var keyId = "";
+            using (SHA256 mySHA256 = SHA256.Create())
+            {
+                var hash = mySHA256.ComputeHash(cert.GetRawCertData());
+                var hash8 = hash.Take(8).ToArray();
+                keyId = Convert.ToBase64String(hash8);
+            }
+
+            return (keyId, cert);
         }
 
         [TestMethod]
         public async Task EncodeDecode_RoundTrip_IsValid()
         {
-            var (keyid, cert, keypair) = CreateX509Cert();
+            var (keyid, cert) = CreateX509Cert();
 
             var cwtToTest = CreateCWTTestData();
-            string encoded = new GreenCertificateEncoder(keypair, keyid).Encode(cwtToTest);
+
+            string encoded = new GreenCertificateEncoder(cert).Encode(cwtToTest);
             var cwt = new GreenCertificateDecoder().Decode(encoded);
             
             var scretariat = new SecretariatService();
@@ -134,15 +109,16 @@ namespace DGC.Tests
         [TestMethod]
         public async Task EncodeDecode_WrongPublicKey()
         {
-            var (keyid, cert, keypair) = CreateX509Cert();
+            var (keyid, cert) = CreateX509Cert();
+            var (keyid2, cert2) = CreateX509Cert();
 
             var cwtToTest = CreateCWTTestData();
 
-            string encoded = new GreenCertificateEncoder(keypair, "123=").Encode(cwtToTest);
+            string encoded = new GreenCertificateEncoder(cert).Encode(cwtToTest);
             var cwt = new GreenCertificateDecoder().Decode(encoded);
 
             var scretariat = new SecretariatService();
-            scretariat.AddPublicKey(keyid, cert);
+            scretariat.AddPublicKey(keyid2, cert);
             
             var verifier = new GreenCertificateVerifier(scretariat);
             var (isvalid, reason) = await verifier.Verify(cwt);
@@ -155,10 +131,10 @@ namespace DGC.Tests
         [TestMethod]
         public async Task EncodeDecode_RSAKeys()
         {
-            var (keyid, cert, keypair) = CreateX509Cert();
+            var (keyid, cert) = CreateX509Cert();
 
             var cwtToTest = CreateCWTTestData();
-            string encoded = new GreenCertificateEncoder(keypair, keyid).Encode(cwtToTest);
+            string encoded = new GreenCertificateEncoder(cert).Encode(cwtToTest);
             var cwt = new GreenCertificateDecoder().Decode(encoded);
 
             var scretariat = new SecretariatService();
@@ -207,13 +183,11 @@ namespace DGC.Tests
         public async Task TestData_SmokeTest()
         {
             var secrataryService = new SecretariatService();
-                        
-            X509CertificateParser parser = new X509CertificateParser();
             foreach (var cert in testData.GroupBy(p => p.keyId))
             {
                 var certBytes = Convert.FromBase64String(cert.First().encodedSigningCert);
                 
-                var x509certificate = parser.ReadCertificate(certBytes);
+                var x509certificate = new System.Security.Cryptography.X509Certificates.X509Certificate2(certBytes);
 
                 secrataryService.AddPublicKey(cert.Key, x509certificate);
             }

@@ -8,9 +8,9 @@ namespace dgc.testdata.tests
 {
     class Program
     {
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
-            DGCTestDataVerifier.TestAll();
+            await DGCTestDataVerifier.TestAll();
         }
     }
 }

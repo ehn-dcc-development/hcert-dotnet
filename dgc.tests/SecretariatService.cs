@@ -1,15 +1,15 @@
-﻿using Org.BouncyCastle.X509;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 
 namespace DGC
 {
-    public class SecretariatService : ISecretariatService
+    public class SecretariatService : DCC.ISecretariatService
     {
-        readonly Dictionary<string, List<X509Certificate>> trustedPublicKeys = new Dictionary<string, List<X509Certificate>>();
+        readonly Dictionary<string, List<X509Certificate2>> trustedPublicKeys = new Dictionary<string, List<X509Certificate2>>();
 
-        public Task<IEnumerable<X509Certificate>> GetCertificate(string kid)
+        public Task<IEnumerable<X509Certificate2>> GetCertificate(string kid)
         {
             if (trustedPublicKeys.TryGetValue(kid, out var publicKeys))
             {
@@ -17,13 +17,13 @@ namespace DGC
             }
             else
             {
-                return Task.FromResult(new List<X509Certificate>().AsEnumerable());
+                return Task.FromResult(new List<X509Certificate2>().AsEnumerable());
             }
         }
 
-        public void AddPublicKey(string keyId, X509Certificate cert)
+        public void AddPublicKey(string keyId, X509Certificate2 cert)
         {
-            trustedPublicKeys.Add(keyId, new List<X509Certificate> { cert });
+            trustedPublicKeys.Add(keyId, new List<X509Certificate2> { cert });
         }
     }
 }
