@@ -15,7 +15,7 @@ namespace DGC.Tests
         [TestMethod]
         public void LuahModN_TEST()
         {
-            Assert.AreEqual('E', LuhnModN.GenerateCheckCharacter("01LUX/1873751242292 3"));
+            Assert.AreEqual('Z', LuhnModN.GenerateCheckCharacter("URN:UVCI:01:NL:187/37512422923"));
         }
     }
 }

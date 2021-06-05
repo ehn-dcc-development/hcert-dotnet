@@ -26,22 +26,21 @@ namespace dgc.testdata.tests
         {
             var jsonfiles = Directory.GetFiles(@"./dgc-testdata", "*.json", SearchOption.AllDirectories);
 
-            var testdataset = new List<Tuple<TestDataStructure,string>>();
+            var testdataset = new List<Tuple<TestDataStructure, string>>();
             foreach (var jsonTestDataFile in jsonfiles)
             {
                 using var file = File.OpenText(jsonTestDataFile);
                 try
                 {
                     var jsonStr = file.ReadToEnd();
-                    /*if (jsonStr.Contains("GATEWAY-ENV"))
-                    {*/
-                        var test = JsonConvert.DeserializeObject<TestDataStructure>(jsonStr);
 
-                        testdataset.Add(Tuple.Create(test, jsonTestDataFile));
-                    //}
+                    var test = JsonConvert.DeserializeObject<TestDataStructure>(jsonStr);
+
+                    testdataset.Add(Tuple.Create(test, jsonTestDataFile));
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    Console.WriteLine(file + ": " + ex.Message);
                 }
             }
 
