@@ -41,6 +41,7 @@ namespace DGC.Tests
                     FamilyName = "Testson",
                     GivenName = "Test"
                 },
+                DateOfBirth = new DateTime(2000,1,1),
                 Test = tests.ToArray(),
                 Vaccination = vacs.ToArray()
             };

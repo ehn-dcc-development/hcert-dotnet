@@ -20,6 +20,8 @@ namespace DCC
         /// </summary>
         [JsonProperty("dob")]
         public string DateOfBirthString { get; set; }
+
+        [JsonIgnore]
         public DateTime? DateOfBirth 
         { 
             get {

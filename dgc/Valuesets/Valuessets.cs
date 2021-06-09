@@ -22,7 +22,7 @@ namespace DCC.Valuesets
 
             var assembly = System.Reflection.Assembly.GetExecutingAssembly();
             
-            using (Stream stream = assembly.GetManifestResourceStream("dgc.Valuesets." + resourceName))
+            using (Stream stream = assembly.GetManifestResourceStream("DCC.Valuesets." + resourceName))
             using (StreamReader resourceStream = new StreamReader(stream))
             using (var reader = new JsonTextReader(resourceStream))
             {
