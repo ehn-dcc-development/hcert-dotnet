@@ -164,7 +164,6 @@ namespace DCC
             var ecdakey = cert.GetECDsaPublicKey();
             if (ecdakey != null)
             {
-                //signature = ConvertConcatToDer(Signature);
                 return ecdakey.VerifyData(bytesToSign, signature, HashAlgorithmName.SHA256);
             }
 

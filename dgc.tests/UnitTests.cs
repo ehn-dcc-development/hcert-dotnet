@@ -21,7 +21,7 @@ namespace DGC.Tests
                 new TestEntry
                 {
                     CountryOfTest = "IS",
-                    TestName ="PCR Covid-19"
+                    NAATTestName ="PCR Covid-19"
                 }
             };
 

@@ -5,7 +5,7 @@ C# /.NET implementation of the [Electronic Health Certificate Specification](htt
 This is a dotnet standard library.
 
 ## How to use
-###Verifing a certificate
+### Verifing a certificate
 ```c#
 // First connect to the DCC Gateway
 // Get the TLS certificate 
@@ -28,7 +28,7 @@ GreenCertificateVerifier verifier = new GreenCertificateVerifier(secratariatServ
 var (isvalid, reason) = await verifier.Verify(cwt);
 ```
 
-###Issuing certificate
+### Issuing certificate
 
 ```c#
 // Get the signing certificate with a private key
