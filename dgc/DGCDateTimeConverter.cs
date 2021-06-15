@@ -24,7 +24,7 @@ namespace DGC
             {
                 // Formates 'sc' and 'dr' in 't' array as ISO 8601 Date
                 // If pattern matches JSON Path, formatter is used
-                (@"t\[\d\]\.(sc|dr)", "yyyy'-'MM'-'dd'T'HH':'mm':'ss.FFFFFFFK")
+                (@"t\[\d+\]\.(sc|dr)", "yyyy'-'MM'-'dd'T'HH':'mm':'ss.FFFFFFFK")
             };
 
             this.DateTimeFormat = "yyyy-MM-dd";
