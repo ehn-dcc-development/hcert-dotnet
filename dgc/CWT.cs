@@ -1,6 +1,7 @@
 using Newtonsoft.Json;
 using PeterO.Cbor;
 using System;
+using System.Collections.Generic;
 
 namespace DGC
 {
@@ -46,7 +47,15 @@ namespace DGC
 
             var cborHcer = CBORObject.NewMap();
 
-            var json = JsonConvert.SerializeObject(DGCv1);
+            var json = JsonConvert.SerializeObject(DGCv1, new JsonSerializerSettings()
+            {
+                NullValueHandling = NullValueHandling.Ignore,
+                Converters = new List<JsonConverter>() 
+                {
+                    new DGCDateTimeConverter()
+                }
+            });
+
             cborHcer[1] = CBORObject.FromJSONString(json);
 
             cbor[Header_HCERT] = cborHcer;

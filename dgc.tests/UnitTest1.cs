@@ -52,6 +52,35 @@ namespace DGC.Tests
             return cwt;
         }
 
+        private static DgCertificate CreateTestEntryCertificate()
+        {
+            return new DgCertificate()
+            {
+                DateOfBirth = new DateTimeOffset(1978, 1, 26, 0, 0, 0, TimeSpan.Zero),
+                Name = new Nam()
+                {
+                    FamilyName = "Петков",
+                    GivenName = "Стамо Георгиев",
+                    FamilyNameTransliterated = "Petkov",
+                    GivenNameTraslitaerated = "Stamo<Georgiev"
+                },
+                Test = new TestEntry[] {
+                    new TestEntry()
+                    {
+                        CertificateIdentifier = "urn:uvci:01:BG:1234#5",
+                        CountryOfTest = "BG",
+                        Disease = "840539006",
+                        Issuer = "Ministry of Health",
+                        SampleTakenDate = new DateTimeOffset(2021, 6, 14, 9, 37, 58, TimeSpan.Zero),
+                        TestingCenter = "2204141503",
+                        TestResult = "260415000",
+                        TestResutDate = new DateTimeOffset(2021, 6, 15, 8, 45, 12, TimeSpan.Zero),
+                        TestType = "LP6464-4"
+                    }
+                }
+            };
+        }
+
         [TestMethod]
         public void EncodeDecode_RoundTrip_IsValid()
         {
@@ -248,6 +277,75 @@ namespace DGC.Tests
             {
                 return;
             }
+        }
+
+        /// <summary>
+        /// Testing DGCDateTimeConverter
+        /// Only TestEntry has different types of dates
+        /// </summary>
+        [TestMethod]
+        public void SerializeDates()
+        {
+            var cert = CreateTestEntryCertificate();
+            var json = Newtonsoft.Json.JsonConvert.SerializeObject(cert, new Newtonsoft.Json.JsonSerializerSettings()
+            {
+                NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore,
+                Converters = new List<Newtonsoft.Json.JsonConverter>()
+                {
+                    new DGCDateTimeConverter()
+                }
+            });
+
+            Assert.IsTrue(json.Contains("\"dob\":\"1978-01-26\""));
+            Assert.IsTrue(json.Contains("\"sc\":\"2021-06-14T09:37:58+00:00\""));
+            Assert.IsTrue(json.Contains("\"dr\":\"2021-06-15T08:45:12+00:00\""));
+        }
+
+        /// <summary>
+        /// Testing DGCDateTimeConverter with default format
+        /// </summary>
+        [TestMethod]
+        public void SerializeDatesWithoutTime()
+        {
+            var cert = CreateTestEntryCertificate();
+            var json = Newtonsoft.Json.JsonConvert.SerializeObject(cert, new Newtonsoft.Json.JsonSerializerSettings()
+            {
+                NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore,
+                Converters = new List<Newtonsoft.Json.JsonConverter>()
+                {
+                    new DGCDateTimeConverter(null)
+                }
+            });
+
+            Assert.IsTrue(json.Contains("\"dob\":\"1978-01-26\""));
+            Assert.IsTrue(json.Contains("\"sc\":\"2021-06-14\""));
+            Assert.IsTrue(json.Contains("\"dr\":\"2021-06-15\""));
+        }
+
+        /// <summary>
+        /// Testing DGCDateTimeConverter with special formatters
+        /// </summary>
+        [TestMethod]
+        public void SerializeDatesWithSpecialFormat()
+        {
+            var cert = CreateTestEntryCertificate();
+            var json = Newtonsoft.Json.JsonConvert.SerializeObject(cert, new Newtonsoft.Json.JsonSerializerSettings()
+            {
+                NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore,
+                Converters = new List<Newtonsoft.Json.JsonConverter>()
+                {
+                    new DGCDateTimeConverter(new (string, string)[] 
+                    {
+                        ("dob", "yy-MM-dd"),
+                        (@"t\[\d+\]\.(sc)", "yyyy"),
+                        (@"t\[\d+\]\.(dr)", "yyyy-MM")
+                    })
+                }
+            });
+
+            Assert.IsTrue(json.Contains("\"dob\":\"78-01-26\""));
+            Assert.IsTrue(json.Contains("\"sc\":\"2021\""));
+            Assert.IsTrue(json.Contains("\"dr\":\"2021-06\""));
         }
     }
 }
