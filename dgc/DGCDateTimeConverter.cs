@@ -74,6 +74,13 @@ namespace DGC
                                     .ToString(formatter.format, Culture);
                             }
                         }
+
+                        if (text == null)
+                        {
+                            text = dateTime
+                                    .ToUniversalTime()
+                                    .ToString(DateTimeFormat, Culture);
+                        }
                     }
                 }
                 else if (value is DateTimeOffset dateTimeOffset)
@@ -96,6 +103,13 @@ namespace DGC
                                     .ToUniversalTime()
                                     .ToString(formatter.format, Culture);
                             }
+                        }
+
+                        if (text == null)
+                        {
+                            text = dateTimeOffset
+                                    .ToUniversalTime()
+                                    .ToString(DateTimeFormat, Culture);
                         }
                     }
                 }
