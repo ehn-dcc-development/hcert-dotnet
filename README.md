@@ -80,7 +80,7 @@ using var filestream = File.Create("qrCode.png");
 stream.CopyTo(filestream);
 ```
 
-##Outstanding issues
-Verifying extended key parameters and the signing country has not been implented
-Signature certificates when downloaded are not verified agains CA
+## Outstanding issues
+Verifying extended key parameters and the signing country has not been implemented
+Signature certificates when downloaded are not verified against CA
 

@@ -23,7 +23,7 @@ namespace DCC
             if (!verifyClock.HasValue) verifyClock = DateTime.Now;
 
             var certificates = await _secretariatService.GetCertificate(cwt.CoseMessage.KID);
-            if (certificates.Any())
+            if (certificates.Count > 0)
             {
                 bool? validSignature = null;
                 foreach (var certificate in certificates)
@@ -34,7 +34,7 @@ namespace DCC
                     return Tuple.Create(false, "KID public key not found");
                 if (!validSignature.Value)
                     return Tuple.Create(false, "Signature is not valid");
-                if (cwt.ExpiarationTime < verifyClock.Value)
+                if (cwt.ExpirationTime < verifyClock.Value)
                     return Tuple.Create(false, "Certificate has expired");
 
                 return Tuple.Create<bool, string>(true, null);

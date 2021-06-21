@@ -6,6 +6,6 @@ namespace DCC
 {
     public interface ISecretariatService
     {
-        Task<IEnumerable<X509Certificate2>> GetCertificate(string kid);
+        Task<IReadOnlyList<X509Certificate2>> GetCertificate(string kid);
     }
 }

@@ -24,7 +24,8 @@ namespace DCC
         [JsonIgnore]
         public DateTime? DateOfBirth 
         { 
-            get {
+            get 
+            {
                 if (DateTime.TryParse(DateOfBirthString, out var res))
                 {
                     return res;
@@ -81,16 +82,16 @@ namespace DCC
     public partial class Nam
     {
         /// <summary>
-        /// The family or primary name(s) of the person addressed in the certificate
+        /// The surename or primary name(s) of the person addressed in the certificate
         /// </summary>
         [JsonProperty("fn", NullValueHandling = NullValueHandling.Ignore)]
-        public string FamilyName { get; set; }
+        public string SurnameName { get; set; }
 
         /// <summary>
         /// The family name(s) of the person transliterated
         /// </summary>
         [JsonProperty("fnt")]
-        public string FamilyNameTransliterated { get; set; }
+        public string SurameTransliterated { get; set; }
 
         /// <summary>
         /// The given name(s) of the person addressed in the certificate
@@ -135,7 +136,7 @@ namespace DCC
         /// </summary>
         [JsonProperty("du")]
         [JsonConverter(typeof(CustomDateTimeConverter))]
-        public DateTimeOffset ValitUntil { get; set; }
+        public DateTimeOffset ValidUntil { get; set; }
 
         /// <summary>
         /// The date when a sample for the NAAT test producing a positive result was collected, in the format YYYY-MM-DD (complete date without time). Other formats are not supported. 

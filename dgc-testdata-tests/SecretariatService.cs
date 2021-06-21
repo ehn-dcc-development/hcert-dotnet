@@ -9,15 +9,15 @@ namespace DGC
     {
         readonly Dictionary<string, List<X509Certificate2>> trustedPublicKeys = new Dictionary<string, List<X509Certificate2>>();
 
-        public Task<IEnumerable<X509Certificate2>> GetCertificate(string kid)
+        public Task<IReadOnlyList<X509Certificate2>> GetCertificate(string kid)
         {
             if (trustedPublicKeys.TryGetValue(kid, out var publicKeys))
             {
-                return Task.FromResult(publicKeys.AsEnumerable());
+                return Task.FromResult((IReadOnlyList<X509Certificate2>)publicKeys);
             }
             else
             {
-                return Task.FromResult(new List<X509Certificate2>().AsEnumerable());
+                return Task.FromResult((IReadOnlyList<X509Certificate2>)new List<X509Certificate2>());
             }
         }
 

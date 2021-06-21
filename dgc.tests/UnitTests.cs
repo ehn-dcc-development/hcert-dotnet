@@ -38,7 +38,7 @@ namespace DGC.Tests
             {
                 Name = new Nam
                 {
-                    FamilyName = "Testson",
+                    SurnameName = "Testson",
                     GivenName = "Test"
                 },
                 DateOfBirth = new DateTime(2000,1,1),
@@ -46,7 +46,7 @@ namespace DGC.Tests
                 Vaccination = vacs.ToArray()
             };
 
-            cwt.ExpiarationTime = DateTime.Now.AddDays(7);
+            cwt.ExpirationTime = DateTime.Now.AddDays(7);
             cwt.IssueAt = DateTime.Now;
             cwt.Issuer = "DNK";
 

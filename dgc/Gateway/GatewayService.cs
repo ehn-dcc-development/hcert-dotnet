@@ -17,30 +17,39 @@ namespace DCC.Gateway
 
         private string _baseAddress;
         private readonly X509Certificate2 _certificate;
-        
+        private object _lock = new object();
+
         private HttpClient _httpClient;
         private HttpClient HttpClient
         {
             get
             {
-                if (_httpClient != null) return _httpClient;
-                var address = new Uri(_baseAddress);
-
-                var handler = new HttpClientHandler();
-                if (_certificate != null)
+                if (_httpClient == null)
                 {
-                    handler.ClientCertificateOptions = ClientCertificateOption.Manual;
-                    handler.SslProtocols = SslProtocols.Tls12;
-                    handler.ClientCertificates.Add(_certificate);
+                    lock (_lock)
+                    {
+                        if (_httpClient == null)
+                        {
+                            var address = new Uri(_baseAddress);
+
+                            var handler = new HttpClientHandler();
+                            if (_certificate != null)
+                            {
+                                handler.ClientCertificateOptions = ClientCertificateOption.Manual;
+                                handler.SslProtocols = SslProtocols.Tls12;
+                                handler.ClientCertificates.Add(_certificate);
+                            }
+                            var client = new HttpClient(handler);
+                            client.BaseAddress = address;
+
+                            client.DefaultRequestHeaders.Accept.Clear();
+                            client.DefaultRequestHeaders.Accept.Add(
+                                new MediaTypeWithQualityHeaderValue("application/json"));
+
+                            _httpClient = client;
+                        }
+                    }
                 }
-                var client = new HttpClient(handler);
-                client.BaseAddress = address;
-
-                client.DefaultRequestHeaders.Accept.Clear();
-                client.DefaultRequestHeaders.Accept.Add(
-                    new MediaTypeWithQualityHeaderValue("application/json"));
-
-                _httpClient = client;
                 return _httpClient;
             }
         }

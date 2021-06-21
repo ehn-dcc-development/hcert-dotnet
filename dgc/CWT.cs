@@ -11,7 +11,7 @@ namespace DCC
         public string Issuer { get; set; }
 
         public DateTime IssueAt { get; set; }
-        public DateTime ExpiarationTime { get; set; }
+        public DateTime ExpirationTime { get; set; }
 
         const int Header_Iss = 1;
         const int Header_IAT = 6;
@@ -26,7 +26,7 @@ namespace DCC
 
             cwt.Issuer = cbor[Header_Iss].AsString();
             cwt.IssueAt = DateTimeOffset.FromUnixTimeSeconds(cbor[Header_IAT].AsNumber().ToInt64Unchecked()).DateTime;
-            cwt.ExpiarationTime = DateTimeOffset.FromUnixTimeSeconds(cbor[Header_EXP].AsNumber().ToInt64Unchecked()).DateTime;
+            cwt.ExpirationTime = DateTimeOffset.FromUnixTimeSeconds(cbor[Header_EXP].AsNumber().ToInt64Unchecked()).DateTime;
 
             var hcert = cbor[Header_HCERT];
             var dgcJson = hcert[1].ToJSONString();
@@ -41,7 +41,7 @@ namespace DCC
             var cbor = CBORObject.NewMap();
 
             cbor[Header_Iss] = CBORObject.FromObject(Issuer);
-            cbor[Header_EXP] = CBORObject.FromObject(ToUnixTime(ExpiarationTime));
+            cbor[Header_EXP] = CBORObject.FromObject(ToUnixTime(ExpirationTime));
             cbor[Header_IAT] = CBORObject.FromObject(ToUnixTime(IssueAt));
 
             var cborHcer = CBORObject.NewMap();
