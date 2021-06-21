@@ -1,23 +1,46 @@
-namespace DGC
+using System;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+
+namespace DCC
 {
-    using System;
-    using System.Collections.Generic;
-
-    using System.Globalization;
-    using Newtonsoft.Json;
-    using Newtonsoft.Json.Converters;
-
     /// <summary>
-    /// EU Digital Green Certificate
+    /// EU Digital Green Certificate v.1.3.0
     /// </summary>
     public partial class DgCertificate
     {
         /// <summary>
-        /// Date of Birth of the person addressed in the DGC. ISO 8601 date format restricted to
-        /// range 1900-2099
+        /// Date of birth of the DCC holder.  
+        /// Complete or partial date without time restricted to the range from 1900-01-01 to 2099-12-31.  
+        /// Exactly 1 (one) non-empty field MUST be provided if the complete or partial date of birth is known.If the date of birth is not known even partially, the field MUST be set to an empty string "". This should match the information as provided on travel documents.
+        /// One of the following ISO 8601 formats MUST be used if information on date of birth is available.Other options are not supported.
+        /// YYYY-MM-DD
+        /// YYYY-MM
+        /// YYYY
         /// </summary>
         [JsonProperty("dob")]
-        public DateTimeOffset DateOfBirth { get; set; }
+        public string DateOfBirthString { get; set; }
+
+        [JsonIgnore]
+        public DateTime? DateOfBirth 
+        { 
+            get 
+            {
+                if (DateTime.TryParse(DateOfBirthString, out var res))
+                {
+                    return res;
+                } 
+                else if (int.TryParse(DateOfBirthString, out int year))
+                {
+                    return new DateTime(year, 1, 1);
+                }
+                return null;
+            }
+            set
+            {
+                DateOfBirthString = value?.ToString("yyyy-MM-dd") ?? "";
+            } 
+        }
 
         /// <summary>
         /// Surname(s), given name(s) - in that order
@@ -59,31 +82,27 @@ namespace DGC
     public partial class Nam
     {
         /// <summary>
-        /// The family or primary name(s) of the person addressed in the certificate
+        /// The surename or primary name(s) of the person addressed in the certificate
         /// </summary>
         [JsonProperty("fn", NullValueHandling = NullValueHandling.Ignore)]
-        //[JsonConverter(typeof(PurpleMinMaxLengthCheckConverter))]
-        public string FamilyName { get; set; }
+        public string SurnameName { get; set; }
 
         /// <summary>
         /// The family name(s) of the person transliterated
         /// </summary>
         [JsonProperty("fnt")]
-        //[JsonConverter(typeof(FluffyMinMaxLengthCheckConverter))]
-        public string FamilyNameTransliterated { get; set; }
+        public string SurameTransliterated { get; set; }
 
         /// <summary>
         /// The given name(s) of the person addressed in the certificate
         /// </summary>
         [JsonProperty("gn", NullValueHandling = NullValueHandling.Ignore)]
-        //[JsonConverter(typeof(PurpleMinMaxLengthCheckConverter))]
         public string GivenName { get; set; }
 
         /// <summary>
         /// The given name(s) of the person transliterated
         /// </summary>
         [JsonProperty("gnt", NullValueHandling = NullValueHandling.Ignore)]
-        //[JsonConverter(typeof(FluffyMinMaxLengthCheckConverter))]
         public string GivenNameTraslitaerated { get; set; }
     }
 
@@ -96,7 +115,6 @@ namespace DGC
         /// Unique Certificate Identifier, UVCI
         /// </summary>
         [JsonProperty("ci")]
-        //[JsonConverter(typeof(PurpleMinMaxLengthCheckConverter))]
         public string CertificateIdentifier { get; set; }
 
         /// <summary>
@@ -106,21 +124,25 @@ namespace DGC
         public string CountryOfTest { get; set; }
 
         /// <summary>
-        /// ISO 8601 Date: Certificate Valid From
+        /// The first date on which the certificate is considered to be valid. The date MUST NOT be earlier than the date calculated as r/fr + 11 days. 
+        /// The date MUST be provided in the format YYYY-MM-DD(complete date without time). Other formats are not supported.
         /// </summary>
         [JsonProperty("df")]
+        [JsonConverter(typeof(CustomDateTimeConverter))]
         public DateTimeOffset ValidFrom { get; set; }
 
         /// <summary>
-        /// Certificate Valid Until
+        /// The last date on which the certificate is considered to be valid, assigned by the certificate issuer. The date MUST NOT be after the date calculated as r/fr + 180 days. 
         /// </summary>
         [JsonProperty("du")]
-        public DateTimeOffset ValitUntil { get; set; }
+        [JsonConverter(typeof(CustomDateTimeConverter))]
+        public DateTimeOffset ValidUntil { get; set; }
 
         /// <summary>
-        /// ISO 8601 Date of First Positive Test Result
+        /// The date when a sample for the NAAT test producing a positive result was collected, in the format YYYY-MM-DD (complete date without time). Other formats are not supported. 
         /// </summary>
         [JsonProperty("fr")]
+        [JsonConverter(typeof(CustomDateTimeConverter))]
         public DateTimeOffset FirstPositiveTestResult { get; set; }
 
         /// <summary>
@@ -143,7 +165,6 @@ namespace DGC
         /// Unique Certificate Identifier, UVCI
         /// </summary>
         [JsonProperty("ci")]
-        //[JsonConverter(typeof(PurpleMinMaxLengthCheckConverter))]
         public string CertificateIdentifier { get; set; }
 
         /// <summary>
@@ -153,34 +174,29 @@ namespace DGC
         public string CountryOfTest { get; set; }
 
         /// <summary>
-        /// Date/Time of Test Result
-        /// </summary>
-        [JsonProperty("dr", NullValueHandling = NullValueHandling.Ignore)]
-        public DateTimeOffset? TestResutDate { get; set; }
-
-        /// <summary>
         /// Certificate Issuer
         /// </summary>
         [JsonProperty("is")]
-        //[JsonConverter(typeof(PurpleMinMaxLengthCheckConverter))]
         public string Issuer { get; set; }
 
         /// <summary>
-        /// RAT Test name and manufacturer
+        /// Rapid antigen test (RAT) device identifier from the JRC database
         /// </summary>
         [JsonProperty("ma", NullValueHandling = NullValueHandling.Ignore)]
-        public string TestNameAndManufacturer { get; set; }
+        public string RATTestDeviceIdentifier { get; set; }
 
         /// <summary>
-        /// NAA Test Name
+        /// The name of the nucleic acid amplification test (NAAT) used. The name should include the name of the test manufacturer and the commercial name of the test, separated by a comma. 
+        /// The field is optional.When supplied, it MUST NOT be empty.The field SHOULD only be used for NAAT tests. It SHOULD NOT be used for RAT tests, as their name is supplied indirectly through the test device identifier (t/ma). 
         /// </summary>
         [JsonProperty("nm", NullValueHandling = NullValueHandling.Ignore)]
-        public string TestName { get; set; }
+        public string NAATTestName { get; set; }
 
         /// <summary>
         /// Date/Time of Sample Collection
         /// </summary>
         [JsonProperty("sc")]
+        [JsonConverter(typeof(NoMillisDateTimeConverter))]
         public DateTimeOffset SampleTakenDate { get; set; }
 
         /// <summary>
@@ -234,6 +250,7 @@ namespace DGC
         /// Date of Vaccination
         /// </summary>
         [JsonProperty("dt")]
+        [JsonConverter(typeof(CustomDateTimeConverter))]
         public DateTimeOffset VaccinationDate { get; set; }
 
         /// <summary>
@@ -272,5 +289,21 @@ namespace DGC
         /// </summary>
         [JsonProperty("vp")]
         public string Vaccine { get; set; }
+    }
+    
+    class CustomDateTimeConverter : IsoDateTimeConverter
+    {
+        public CustomDateTimeConverter()
+        {
+            DateTimeFormat = "yyyy-MM-dd";
+        }
+    }
+
+    public class NoMillisDateTimeConverter : IsoDateTimeConverter
+    {
+        public NoMillisDateTimeConverter()
+        {
+            DateTimeFormat = "yyyy-MM-ddTHH:mm:ssZ";
+        }
     }
 }

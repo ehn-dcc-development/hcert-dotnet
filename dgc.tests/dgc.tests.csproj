@@ -14,13 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\dgc\dgc.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Update="testdata\SE\1.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
+    <ProjectReference Include="..\dgc\DCC.csproj" />
   </ItemGroup>
 
 </Project>

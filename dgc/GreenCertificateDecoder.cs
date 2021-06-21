@@ -3,7 +3,7 @@ using NL.MinVWS.Encoding;
 using System;
 using System.IO;
 
-namespace DGC
+namespace DCC
 {
     public class GreenCertificateDecoder
     {

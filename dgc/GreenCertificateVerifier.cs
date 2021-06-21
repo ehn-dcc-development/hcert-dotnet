@@ -1,13 +1,14 @@
 ﻿using System;
 using System.Linq;
+using System.Threading.Tasks;
 
-namespace DGC
+namespace DCC
 {
     public class GreenCertificateVerifier
     {
-        private readonly SecretariatService _secretariatService;
+        private readonly ISecretariatService _secretariatService;
 
-        public GreenCertificateVerifier(SecretariatService secretariatService)
+        public GreenCertificateVerifier(ISecretariatService secretariatService)
         {
             _secretariatService = secretariatService;
         }
@@ -17,28 +18,30 @@ namespace DGC
         /// </summary>
         /// <param name="coseMessage">Cose message</param>
         /// <returns>(true, null) if valid, (false, reason) if not valid</returns>
-        public (bool, string) Verify(CWT cwt)
+        public async Task<Tuple<bool, string>> Verify(CWT cwt, DateTime? verifyClock = null)
         {
-            var publicKeys = _secretariatService.GetPublicKeys(cwt.CoseMessage.KID);
-            if (publicKeys.Any())
+            if (!verifyClock.HasValue) verifyClock = DateTime.Now;
+
+            var certificates = await _secretariatService.GetCertificate(cwt.CoseMessage.KID);
+            if (certificates.Count > 0)
             {
                 bool? validSignature = null;
-                foreach (var publicKey in publicKeys)
+                foreach (var certificate in certificates)
                 {
-                    validSignature = cwt.CoseMessage.VerifySignature(publicKey);
+                    validSignature = cwt.CoseMessage.VerifySignature(certificate);
                 }
                 if (!validSignature.HasValue)
-                    return (false, "KID public key not found");
+                    return Tuple.Create(false, "KID public key not found");
                 if (!validSignature.Value)
-                    return (false, "Signature is not valid");
-                if (cwt.ExpiarationTime < DateTime.Now)
-                    return (false, "Certificate has expired");
+                    return Tuple.Create(false, "Signature is not valid");
+                if (cwt.ExpirationTime < verifyClock.Value)
+                    return Tuple.Create(false, "Certificate has expired");
 
-                return (true, null);
+                return Tuple.Create<bool, string>(true, null);
             }
             else
             {
-                return (false, "KID not found in trusted public key repository");
+                return Tuple.Create(false, "KID not found in trusted public key repository");
             }
         }        
     }
