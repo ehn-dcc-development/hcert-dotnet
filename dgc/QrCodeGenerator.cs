@@ -1,5 +1,8 @@
-﻿using System.Drawing;
+﻿using SkiaSharp;
+using System;
+using System.Drawing;
 using System.IO;
+using ZXing;
 using ZXing.QrCode.Internal;
 
 namespace DCC
@@ -10,11 +13,12 @@ namespace DCC
         /// Generates 2D code containing DGC
         /// </summary>
         /// <param name="text">DGC to be encoded</param>
+        [Obsolete("This method will only work on Windows in .net6, GenerateQR2 is cross-platform")]
         public static Stream GenerateQR(string prefixDgc)
         {
-            var qrCodeWriter = new ZXing.BarcodeWriterPixelData
+            var qrCodeWriter = new BarcodeWriterPixelData
             {
-                Format = ZXing.BarcodeFormat.QR_CODE,
+                Format = BarcodeFormat.QR_CODE,
                 Options = new ZXing.QrCode.QrCodeEncodingOptions
                 {
                     Height = 400,
@@ -31,7 +35,7 @@ namespace DCC
             using (var bitmap = new Bitmap(pixelData.Width, pixelData.Height, System.Drawing.Imaging.PixelFormat.Format32bppRgb))
                 
             {
-                var bitmapData = bitmap.LockBits(new System.Drawing.Rectangle(0, 0, pixelData.Width, pixelData.Height), System.Drawing.Imaging.ImageLockMode.WriteOnly, System.Drawing.Imaging.PixelFormat.Format32bppRgb);
+                var bitmapData = bitmap.LockBits(new Rectangle(0, 0, pixelData.Width, pixelData.Height), System.Drawing.Imaging.ImageLockMode.WriteOnly, System.Drawing.Imaging.PixelFormat.Format32bppRgb);
                 try
                 {
                     // we assume that the row stride of the bitmap is aligned to 4 byte multiplied by the width of the image    
@@ -49,5 +53,42 @@ namespace DCC
                 return ms;
             }
         }
+
+        /// <summary>
+        /// Generates 2D code containing DGC, cross-platform
+        /// </summary>
+        /// <param name="prefixDgc"></param>
+        /// <returns></returns>
+        public static Stream GenerateQR2(string prefixDgc)
+        {
+            var qrCodeWriter = new BarcodeWriterPixelData
+            {
+                Format = BarcodeFormat.QR_CODE,
+                Options = new ZXing.QrCode.QrCodeEncodingOptions
+                {
+                    Height = 400,
+                    Width = 400,
+                    // 25% error correction
+                    ErrorCorrection = ErrorCorrectionLevel.Q
+                }
+            };
+
+            var bitMatrix = qrCodeWriter.Encode(prefixDgc);
+
+            using (SKBitmap ss = new SKBitmap(400, 400))
+            {
+                for (int x = 0; x < bitMatrix.Width; x++)
+                {
+                    for (int y = 0; y < bitMatrix.Height; y++)
+                    {
+                        ss.SetPixel(x, y, bitMatrix[x, y] ? SKColors.Black : SKColors.White );
+                    }
+                }
+                var data = ss.Encode(SKEncodedImageFormat.Png, 100);
+                return data.AsStream();
+            }
+        }
+
+
     }
 }
