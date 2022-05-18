@@ -80,6 +80,29 @@ using var filestream = File.Create("qrCode.png");
 stream.CopyTo(filestream);
 ```
 
+## Valuesets
+To fetch valuesset from the eu dcc gateway the GatewayServices class can be used.
+```c#
+// First connect to the DCC Gateway
+// Get the TLS certificate 
+// From a certificate store or this could also be a file or some other methods
+X509Certificate2 cert = new X509Certificate2([ByteArrayOfTheCert])
+
+var gatewayService = new GatewayService("https://url to the gateway", cert);
+
+var country2Codes = gatewayService.GetValueset("country-2-codes");
+var labResult = gatewayService.GetValueset("covid-19-lab-result");
+var ratTestManfName = gatewayService.GetValueset("covid-19-lab-test-manufacturer-and-name");
+var labTestType = gatewayService.GetValueset("covid-19-lab-test-type");
+var diseaseAgentTargeted = gatewayService.GetValueset("disease-agent-targeted");
+var sctVaccine = gatewayService.GetValueset("sct-vaccines-covid-19");
+var vaccineAuthHoler = gatewayService.GetValueset("vaccines-covid-19-auth-holders");
+var vaccineNames = gatewayService.GetValueset("vaccines-covid-19-names");
+
+
+// To get the name of a RAT test 
+var ratTestName = ratTestManfName[cwt.Test[0].TestNameAndManufacturer];
+```
 ## Outstanding issues
 Verifying extended key parameters and the signing country has not been implemented
 Signature certificates when downloaded are not verified against CA

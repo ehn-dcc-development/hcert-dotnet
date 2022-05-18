@@ -1,4 +1,7 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System;
+using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Security.Authentication;
@@ -62,20 +65,64 @@ namespace DCC.Gateway
             response.EnsureSuccessStatusCode();
 
             var content = await response.Content.ReadAsStringAsync();
-            var result = Newtonsoft.Json.JsonConvert.DeserializeObject<GatewayDSCResponse[]>(content);
+            var result = JsonConvert.DeserializeObject<GatewayDSCResponse[]>(content);
 
             return result;
         }
 
-        public class GatewayDSCResponse
+        public async Task<IReadOnlyList<string>> GetValuesets()
         {
-            public string kid { get; set; }
-            public DateTime timestamp { get; set; }
-            public string country { get; set; }
-            public string certificateType { get; set; }
-            public string thumbprint { get; set; }
-            public string signature { get; set; }
-            public string rawData { get; set; }
+            const string valuesseturl = "/valuesets";
+            var response = await HttpClient.GetAsync(valuesseturl);
+
+            response.EnsureSuccessStatusCode();
+
+            var content = await response.Content.ReadAsStringAsync();
+
+            var valueset = new List<string>();
+            using (var reader = new JsonTextReader(new System.IO.StringReader(content)))
+            {
+                foreach (var a in (JArray)JToken.ReadFrom(reader))
+                {
+                    valueset.Add(a.Value<string>());
+                }
+            }
+            return valueset;
+        }
+
+        public async Task<Dictionary<string, GatewayValueset>> GetValueset(string valuesetId)
+        {
+            string valuesseturl = "/valuesets/" + valuesetId;
+            var response = await HttpClient.GetAsync(valuesseturl);
+
+            response.EnsureSuccessStatusCode();
+
+            var content = await response.Content.ReadAsStringAsync();
+
+            var valueset = new Dictionary<string, GatewayValueset>();
+            using (var reader = new JsonTextReader(new System.IO.StringReader(content)))
+            {
+                var root = (JObject)JToken.ReadFrom(reader);
+
+                foreach (var item in (root["valueSetValues"]))
+                {
+                    var value = ((JProperty)item).Name;
+                    var set = new GatewayValueset
+                    {
+                        Value = value,
+                        Display = item.First["display"].ToString(),
+                        Lang = item.First["lang"].ToString(),
+                        Active = item.First["active"].ToObject<bool>(),
+                        Version = item.First["version"].ToString(),
+                        System = item.First["system"].ToString(),
+                        SetDate = DateTime.Parse(root["valueSetDate"].ToString()),
+                        SetId = root["valueSetId"].ToString()
+                    };
+
+                    valueset.Add(value, set);
+                }
+            }
+            return valueset;
         }
     }
 }
