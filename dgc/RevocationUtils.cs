@@ -21,12 +21,12 @@ namespace DCC
         {
             string uci = "";
 
-            if (cwt.DGCv1.Vaccination.Length > 0) uci = cwt.DGCv1.Vaccination[0].CertificateIdentifier;
-            else if (cwt.DGCv1.Recovery.Length > 0) uci = cwt.DGCv1.Recovery[0].CertificateIdentifier;
-            else if (cwt.DGCv1.Test.Length > 0) uci = cwt.DGCv1.Test[0].CertificateIdentifier;
+            if (cwt.DGCv1.Vaccination.Length > 0) uci = cwt.DGCv1.Vaccination[0].CountryOfVaccination + cwt.DGCv1.Vaccination[0].CertificateIdentifier;
+            else if (cwt.DGCv1.Recovery.Length > 0) uci = cwt.DGCv1.Vaccination[0].CountryOfVaccination + cwt.DGCv1.Recovery[0].CertificateIdentifier;
+            else if (cwt.DGCv1.Test.Length > 0) uci = cwt.DGCv1.Vaccination[0].CountryOfVaccination + cwt.DGCv1.Test[0].CertificateIdentifier;
 
             var sha256 = SHA256.Create();
-            return sha256.ComputeHash(Encoding.UTF8.GetBytes(cwt.Issuer + uci)[0..16]);
+            return sha256.ComputeHash(Encoding.UTF8.GetBytes(uci)[0..16]);
         }
 
         public static byte[] ComputeSignatureHash(CWT cwt)

@@ -174,7 +174,7 @@ namespace DCC.Gateway
             return (result, signedCms);
         }
 
-        public async Task<string> UploadNewRevokationBatch(GatewayRevocationBatch batch, X509Certificate2 uploadCertificate)
+        public async Task<string> UploadNewRevocationBatch(GatewayRevocationBatch batch, X509Certificate2 uploadCertificate)
         {
             var jsoncontent = JsonConvert.SerializeObject(batch);
             var jsonbytes = Encoding.UTF8.GetBytes(jsoncontent);
@@ -196,7 +196,7 @@ namespace DCC.Gateway
             return response.Headers.GetValues("ETag").FirstOrDefault();
         }
 
-        public async Task<bool> DeleteRevokationBatch(string batchId, X509Certificate2 uploadCertificate)
+        public async Task<bool> DeleteRevocationBatch(string batchId, X509Certificate2 uploadCertificate)
         {
             var jsoncontent = JsonConvert.SerializeObject(new { batchId = batchId });
             var jsonbytes = Encoding.UTF8.GetBytes(jsoncontent);
