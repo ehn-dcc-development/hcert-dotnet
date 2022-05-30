@@ -2,10 +2,13 @@
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Security.Authentication;
+using System.Security.Cryptography.Pkcs;
 using System.Security.Cryptography.X509Certificates;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace DCC.Gateway
@@ -20,6 +23,7 @@ namespace DCC.Gateway
 
         private string _baseAddress;
         private readonly X509Certificate2 _certificate;
+
         private object _lock = new object();
 
         private HttpClient _httpClient;
@@ -123,6 +127,96 @@ namespace DCC.Gateway
                 }
             }
             return valueset;
+        }
+
+        public async Task<string> UploadRevocationBatch(GatewayRevocationBatch batch)
+        {
+            string batchjson = JsonConvert.SerializeObject(batch);
+
+            var content = new StringContent(batchjson, Encoding.UTF8, "application/json");
+
+            var response = await HttpClient.PostAsync("/revocation-list", content);
+
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadAsStringAsync();
+        }
+
+        public async Task<GatewayRevocationBatchList> GetRevocationBatches(DateTime? lastModifiedDate = null)
+        {
+            var request = new HttpRequestMessage(HttpMethod.Get, "/revocation-list");
+
+            var lastModifiedDatestr = (lastModifiedDate ?? new DateTime(2021, 6, 1,0,0,0)).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK");
+            request.Headers.TryAddWithoutValidation("If-Modified-Since", lastModifiedDatestr); // "2021-06-01T00:00:00Z");
+
+            var response = await HttpClient.SendAsync(request);
+            response.EnsureSuccessStatusCode();
+
+            var content = await response.Content.ReadAsStringAsync();
+            var result = JsonConvert.DeserializeObject<GatewayRevocationBatchList>(content);
+            return result;
+        }
+
+        public async Task<(GatewayRevocationBatch, SignedCms)> GetRevocationBatch(string batchId)
+        {
+            var request = new HttpRequestMessage(HttpMethod.Get, $"/revocation-list/{batchId}");
+            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/cms"));
+
+            var response = await HttpClient.SendAsync(request);
+            response.EnsureSuccessStatusCode();
+
+            var content = await response.Content.ReadAsStringAsync();
+            var cms64b = Convert.FromBase64String(content);
+            var signedCms = new SignedCms();
+            signedCms.Decode(cms64b);
+            var json = Encoding.UTF8.GetString(signedCms.ContentInfo.Content);
+
+            var result = JsonConvert.DeserializeObject<GatewayRevocationBatch>(json);
+            return (result, signedCms);
+        }
+
+        public async Task<string> UploadNewRevokationBatch(GatewayRevocationBatch batch, X509Certificate2 uploadCertificate)
+        {
+            var jsoncontent = JsonConvert.SerializeObject(batch);
+            var jsonbytes = Encoding.UTF8.GetBytes(jsoncontent);
+            var contentInfo = new ContentInfo(jsonbytes);
+            var cms = new SignedCms(contentInfo);
+
+            var signer = new CmsSigner(uploadCertificate);
+            cms.ComputeSignature(signer);
+
+            var content = Convert.ToBase64String(cms.Encode());
+
+            var request = new HttpRequestMessage(HttpMethod.Post, $"/revocation-list");
+            request.Content = new StringContent(content, Encoding.UTF8, "application/cms");
+
+            var response = await HttpClient.SendAsync(request);
+            response.EnsureSuccessStatusCode();
+
+            // BatchId
+            return response.Headers.GetValues("ETag").FirstOrDefault();
+        }
+
+        public async Task<bool> DeleteRevokationBatch(string batchId, X509Certificate2 uploadCertificate)
+        {
+            var jsoncontent = JsonConvert.SerializeObject(new { batchId = batchId });
+            var jsonbytes = Encoding.UTF8.GetBytes(jsoncontent);
+            var contentInfo = new ContentInfo(jsonbytes);
+            var cms = new SignedCms(contentInfo);
+
+            var signer = new CmsSigner(uploadCertificate);
+            cms.ComputeSignature(signer);
+
+            var content = Convert.ToBase64String(cms.Encode());
+
+            var request = new HttpRequestMessage(HttpMethod.Delete, $"/revocation-list");
+            request.Content = new StringContent(content, Encoding.UTF8, "application/cms");
+
+            var response = await HttpClient.SendAsync(request);
+
+            if (!response.IsSuccessStatusCode && response.StatusCode == System.Net.HttpStatusCode.NotFound) return false;
+            
+            response.EnsureSuccessStatusCode();
+            return true;
         }
     }
 }

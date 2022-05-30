@@ -2,7 +2,7 @@
 C# /.NET implementation of the [Electronic Health Certificate Specification](https://github.com/ehn-digital-green-development/ehn-dgc-schema) to create and decode Digital Covid Certificates
 
 ## About
-This is a dotnet standard library.
+This is a dotnet standard 2.1 library.
 
 ## How to use
 ### Verifing a certificate
@@ -26,7 +26,18 @@ var cwt = decoder.Decode(barcodeContent);
 // Verify
 GreenCertificateVerifier verifier = new GreenCertificateVerifier(secratariatService);
 var (isvalid, reason) = await verifier.Verify(cwt);
+
+// To check if certificate has been revoked
+RevocationVerifier revocationVerifier = new RevocationVerifier(revokationRepository);
+var isRevoked = revocationVerifier.IsRevoked(cwt);
 ```
+
+This library doesn't implement the secratarieatService which is a repository to host all of the issuers public keys.
+Also, the library doesn't implement a procedure to fetch certificates and verify that they are verified against the CSCA.
+The GatewayService does provide an interface to fetch the certificates
+
+The library dons not implement the revokationRepostiory that host the list of all revocation or a way to check if the hash of the certificate is revoked. 
+The GatewayService does provide an interface to fetch the revocation list.
 
 ### Issuing certificate
 
@@ -103,6 +114,31 @@ var vaccineNames = gatewayService.GetValueset("vaccines-covid-19-names");
 // To get the name of a RAT test 
 var ratTestName = ratTestManfName[cwt.Test[0].TestNameAndManufacturer];
 ```
+
+## Revoke Certificate
+To revoke a certificate
+
+```c#
+// Get the upload certificate with a private key
+// From a certificate store (HSM) or this could also be a file or some other methods
+X509Certificate2 uploadCert = new X509Certificate2([ByteArrayOfTheCert])
+
+await gateway.UploadNewRevokationBatch(new GatewayRevocationBatch
+{
+    country = "IS",
+    expires = DateTime.Now.AddDays(10),
+    hashType = "UCI",
+    kid = "bIwe3F4lAk4=",
+    entries = new List<GatewayRevocationBatchEntry>
+    {
+        new GatewayRevocationBatchEntry
+        {
+            hash = RevocationUtils.ComputeUCIHash(cwt)
+        }
+    }
+}, uploadCert);
+```
+
 ## Outstanding issues
 Verifying extended key parameters and the signing country has not been implemented
 Signature certificates when downloaded are not verified against CA
