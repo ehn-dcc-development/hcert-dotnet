@@ -28,7 +28,7 @@ GreenCertificateVerifier verifier = new GreenCertificateVerifier(secratariatServ
 var (isvalid, reason) = await verifier.Verify(cwt);
 
 // To check if certificate has been revoked
-RevocationVerifier revocationVerifier = new RevocationVerifier(revokationRepository);
+RevocationVerifier revocationVerifier = new RevocationVerifier(revocationRepository);
 var isRevoked = revocationVerifier.IsRevoked(cwt);
 ```
 
@@ -36,7 +36,7 @@ This library doesn't implement the secratarieatService which is a repository to 
 Also, the library doesn't implement a procedure to fetch certificates and verify that they are verified against the CSCA.
 The GatewayService does provide an interface to fetch the certificates
 
-The library dons not implement the revokationRepostiory that host the list of all revocation or a way to check if the hash of the certificate is revoked. 
+The library doesn't implement the revocationRepository that host the list of all revocation or a way to check if the hash of the certificate is revoked. 
 The GatewayService does provide an interface to fetch the revocation list.
 
 ### Issuing certificate
@@ -125,10 +125,10 @@ X509Certificate2 uploadCert = new X509Certificate2([ByteArrayOfTheCert])
 
 await gateway.UploadNewRevokationBatch(new GatewayRevocationBatch
 {
-    country = "IS",
+    country = cwt.Issuer,
     expires = DateTime.Now.AddDays(10),
     hashType = "UCI",
-    kid = "bIwe3F4lAk4=",
+    kid = cwt.CoseMessage.KID,
     entries = new List<GatewayRevocationBatchEntry>
     {
         new GatewayRevocationBatchEntry
@@ -137,6 +137,31 @@ await gateway.UploadNewRevokationBatch(new GatewayRevocationBatch
         }
     }
 }, uploadCert);
+```
+
+## Revokation List
+Get a list of revoked certificates
+
+```c#
+var lastModifiedDate = (new DateTime(2022, 5, 29));
+var more = true;
+while(more)
+{
+    var revocationBatches = await gateway.GetRevocationBatches(lastModifiedDate);
+    more = revocationBatches.More;
+    Console.WriteLine($"more? {revocationBatches.More}");
+    foreach (var item in revocationBatches.Batches.Where(p => !p.deleted))
+    {
+        var (batch, cms) = await gateway.GetRevocationBatch(item.batchId);
+        
+        cms.CheckSignature(true);
+        Console.WriteLine($"{item.country}, {item.date}, {item.batchId}, {batch.Kid}, {batch.HashType}");
+        foreach (var en in batch.Entries)
+        {
+            Console.WriteLine("   " + en.Hash);
+        }
+    }
+}
 ```
 
 ## Outstanding issues

@@ -9,8 +9,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dgc.tests", "dgc.tests\dgc.
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dgc-testdata-tests", "dgc-testdata-tests\dgc-testdata-tests.csproj", "{F41675F5-B621-45CF-A290-4C2A18F6235C}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{3AE576C3-38DE-43A7-B2DA-9F6A9C7FCAE4}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{76A7E02B-D9C7-441F-B6DC-572A842D3A7B}"
 	ProjectSection(SolutionItems) = preProject
+		LICENSE = LICENSE
 		README.md = README.md
 	EndProjectSection
 EndProject

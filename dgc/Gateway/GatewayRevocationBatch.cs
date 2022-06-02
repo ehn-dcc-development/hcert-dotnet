@@ -5,15 +5,15 @@ namespace DCC.Gateway
 {
     public class GatewayRevocationBatch
     {
-        public string country { get; set; }
-        public DateTime expires { get; set; }
-        public string kid { get; set; }
-        public string hashType { get; set; }
-        public List<GatewayRevocationBatchEntry> entries { get; set; }
+        public string Country { get; set; }
+        public DateTime Expires { get; set; }
+        public string Kid { get; set; }
+        public string HashType { get; set; }
+        public IList<GatewayRevocationBatchEntry> Entries { get; set; }
     }
 
     public class GatewayRevocationBatchEntry
     {
-        public string hash { get;set; }
+        public string Hash { get;set; }
     }
 }

@@ -4,12 +4,12 @@ namespace DCC.Gateway
 {
     public class GatewayDSCResponse
     {
-        public string kid { get; set; }
-        public DateTime timestamp { get; set; }
-        public string country { get; set; }
-        public string certificateType { get; set; }
-        public string thumbprint { get; set; }
-        public string signature { get; set; }
-        public string rawData { get; set; }
+        public string Kid { get; set; }
+        public DateTime Timestamp { get; set; }
+        public string Country { get; set; }
+        public string CertificateType { get; set; }
+        public string Thumbprint { get; set; }
+        public string Signature { get; set; }
+        public string RawData { get; set; }
     }
 }
