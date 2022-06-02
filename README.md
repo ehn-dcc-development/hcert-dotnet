@@ -2,7 +2,7 @@
 C# /.NET implementation of the [Electronic Health Certificate Specification](https://github.com/ehn-digital-green-development/ehn-dgc-schema) to create and decode Digital Covid Certificates
 
 ## About
-This is a dotnet standard library.
+This is a dotnet standard 2.1 library.
 
 ## How to use
 ### Verifing a certificate
@@ -26,7 +26,18 @@ var cwt = decoder.Decode(barcodeContent);
 // Verify
 GreenCertificateVerifier verifier = new GreenCertificateVerifier(secratariatService);
 var (isvalid, reason) = await verifier.Verify(cwt);
+
+// To check if certificate has been revoked
+RevocationVerifier revocationVerifier = new RevocationVerifier(revocationRepository);
+var isRevoked = revocationVerifier.IsRevoked(cwt);
 ```
+
+This library doesn't implement the secratarieatService which is a repository to host all of the issuers public keys.
+Also, the library doesn't implement a procedure to fetch certificates and verify that they are verified against the CSCA.
+The GatewayService does provide an interface to fetch the certificates
+
+The library doesn't implement the revocationRepository that host the list of all revocation or a way to check if the hash of the certificate is revoked. 
+The GatewayService does provide an interface to fetch the revocation list.
 
 ### Issuing certificate
 
@@ -78,6 +89,79 @@ string encodedDigitalCovidCert = new GreenCertificateEncoder(cert).Encode(cwt);
 using var stream = QrCodeGenerator.GenerateQR(dcc);
 using var filestream = File.Create("qrCode.png");
 stream.CopyTo(filestream);
+```
+
+## Valuesets
+To fetch valuesset from the eu dcc gateway the GatewayServices class can be used.
+```c#
+// First connect to the DCC Gateway
+// Get the TLS certificate 
+// From a certificate store or this could also be a file or some other methods
+X509Certificate2 cert = new X509Certificate2([ByteArrayOfTheCert])
+
+var gatewayService = new GatewayService("https://url to the gateway", cert);
+
+var country2Codes = gatewayService.GetValueset("country-2-codes");
+var labResult = gatewayService.GetValueset("covid-19-lab-result");
+var ratTestManfName = gatewayService.GetValueset("covid-19-lab-test-manufacturer-and-name");
+var labTestType = gatewayService.GetValueset("covid-19-lab-test-type");
+var diseaseAgentTargeted = gatewayService.GetValueset("disease-agent-targeted");
+var sctVaccine = gatewayService.GetValueset("sct-vaccines-covid-19");
+var vaccineAuthHoler = gatewayService.GetValueset("vaccines-covid-19-auth-holders");
+var vaccineNames = gatewayService.GetValueset("vaccines-covid-19-names");
+
+
+// To get the name of a RAT test 
+var ratTestName = ratTestManfName[cwt.Test[0].TestNameAndManufacturer];
+```
+
+## Revoke Certificate
+To revoke a certificate
+
+```c#
+// Get the upload certificate with a private key
+// From a certificate store (HSM) or this could also be a file or some other methods
+X509Certificate2 uploadCert = new X509Certificate2([ByteArrayOfTheCert])
+
+await gateway.UploadNewRevokationBatch(new GatewayRevocationBatch
+{
+    country = cwt.Issuer,
+    expires = DateTime.Now.AddDays(10),
+    hashType = "UCI",
+    kid = cwt.CoseMessage.KID,
+    entries = new List<GatewayRevocationBatchEntry>
+    {
+        new GatewayRevocationBatchEntry
+        {
+            hash = RevocationUtils.ComputeUCIHash(cwt)
+        }
+    }
+}, uploadCert);
+```
+
+## Revokation List
+Get a list of revoked certificates
+
+```c#
+var lastModifiedDate = (new DateTime(2022, 5, 29));
+var more = true;
+while(more)
+{
+    var revocationBatches = await gateway.GetRevocationBatches(lastModifiedDate);
+    more = revocationBatches.More;
+    Console.WriteLine($"more? {revocationBatches.More}");
+    foreach (var item in revocationBatches.Batches.Where(p => !p.deleted))
+    {
+        var (batch, cms) = await gateway.GetRevocationBatch(item.batchId);
+        
+        cms.CheckSignature(true);
+        Console.WriteLine($"{item.country}, {item.date}, {item.batchId}, {batch.Kid}, {batch.HashType}");
+        foreach (var en in batch.Entries)
+        {
+            Console.WriteLine("   " + en.Hash);
+        }
+    }
+}
 ```
 
 ## Outstanding issues

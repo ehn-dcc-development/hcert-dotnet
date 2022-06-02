@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFramework>netstandard2.1</TargetFramework>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Authors>Gunnar Ingi Widnes Friðriksson</Authors>
     <Company>Origo</Company>
@@ -11,18 +11,8 @@
     <RepositoryUrl>https://github.com/ehn-digital-green-development/hcert-dotnet</RepositoryUrl>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageId>DigitalCovidCertificate</PackageId>
-    <Version>1.3.0.1</Version>
+    <Version>1.3.1.4</Version>
   </PropertyGroup>
-
-  <ItemGroup>
-    <EmbeddedResource Include="Valuesets\disease-agent-targeted.json" />
-    <EmbeddedResource Include="Valuesets\test-manf.json" />
-    <EmbeddedResource Include="Valuesets\test-result.json" />
-    <EmbeddedResource Include="Valuesets\test-type.json" />
-    <EmbeddedResource Include="Valuesets\vaccine-mah-manf.json" />
-    <EmbeddedResource Include="Valuesets\vaccine-medicinal-product.json" />
-    <EmbeddedResource Include="Valuesets\vaccine-prophylaxis.json" />
-  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
@@ -30,7 +20,8 @@
     <PackageReference Include="SharpZipLib" Version="1.3.1" />
     <PackageReference Include="SkiaSharp" Version="2.80.3" />
     <PackageReference Include="System.Drawing.Common" Version="5.0.2" />
-    <PackageReference Include="ZXing.Net" Version="0.16.6" />
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="6.0.1" />
+    <PackageReference Include="ZXing.Net" Version="0.16.8" />
   </ItemGroup>
 
   <ItemGroup>
