@@ -1,4 +1,5 @@
-﻿using System.Security.Cryptography;
+﻿using System.Diagnostics;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace DCC
@@ -32,8 +33,13 @@ namespace DCC
         public static byte[] ComputeSignatureHash(CWT cwt)
         {
             var sha256 = SHA256.Create();
-            var signlength = cwt.CoseMessage.Signature.Length;
-            return sha256.ComputeHash(cwt.CoseMessage.Signature[0..(signlength/2)])[0..16];
+
+            // RSA uses entire sig, EC-DSA uses R, which is first half of the signature
+            var bytesToHash = cwt.CoseMessage.RegisteredAlgorithm == DGCertSupportedAlgorithm.ES256
+                ? cwt.CoseMessage.Signature
+                : cwt.CoseMessage.Signature[0..(cwt.CoseMessage.Signature.Length / 2)];
+            
+            return sha256.ComputeHash(bytesToHash)[0..16];
         }
     }
 }
