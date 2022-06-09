@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Serialization;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -129,18 +130,6 @@ namespace DCC.Gateway
             return valueset;
         }
 
-        public async Task<string> UploadRevocationBatch(GatewayRevocationBatch batch)
-        {
-            string batchjson = JsonConvert.SerializeObject(batch);
-
-            var content = new StringContent(batchjson, Encoding.UTF8, "application/json");
-
-            var response = await HttpClient.PostAsync("/revocation-list", content);
-
-            response.EnsureSuccessStatusCode();
-            return await response.Content.ReadAsStringAsync();
-        }
-
         public async Task<GatewayRevocationBatchList> GetRevocationBatches(DateTime? lastModifiedDate = null)
         {
             var request = new HttpRequestMessage(HttpMethod.Get, "/revocation-list");
@@ -176,7 +165,14 @@ namespace DCC.Gateway
 
         public async Task<string> UploadNewRevocationBatch(GatewayRevocationBatch batch, X509Certificate2 uploadCertificate)
         {
-            var jsoncontent = JsonConvert.SerializeObject(batch);
+            var jsoncontent = JsonConvert.SerializeObject(batch, new JsonSerializerSettings
+            {
+                ContractResolver = new DefaultContractResolver
+                {
+                    NamingStrategy = new CamelCaseNamingStrategy()
+                },
+                Formatting = Formatting.Indented
+            });
             var jsonbytes = Encoding.UTF8.GetBytes(jsoncontent);
             var contentInfo = new ContentInfo(jsonbytes);
             var cms = new SignedCms(contentInfo);
